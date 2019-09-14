@@ -20,7 +20,9 @@ class BaseRenderer implements Renderer<Error>, enc.Serializeable {
       ctx.response.setHeader("Content-Length", chunk.byteLength);
 
       return new Task<void, Error>(({ Ok, Err }) => {
-        ctx.response.write(chunk, "utf8", function onWriteJSON(error) {
+        ctx.response.write(chunk, "utf8", function onWriteRenderedResponse(
+          error
+        ) {
           if (error) {
             return Err(error);
           }
