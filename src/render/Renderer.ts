@@ -64,20 +64,6 @@ export class FormUrlEncodedRenderer extends BaseRenderer {
   }
 }
 
-export class PlainTextRenderer extends BaseRenderer {
-  public contentType = new ContentTypes.PlainText();
-
-  constructor(public data: string) {
-    super();
-  }
-
-  serialize() {
-    return new Task<Buffer, never>(({ Ok }) => {
-      Ok(Buffer.from(this.data, "utf-8"));
-    });
-  }
-}
-
 export class RawDataRenderer extends BaseRenderer {
   public contentType = new ContentTypes.RawData();
 
@@ -90,30 +76,28 @@ export class RawDataRenderer extends BaseRenderer {
   }
 }
 
-export class HTMLRenderer extends BaseRenderer {
-  public contentType = new ContentTypes.HTML();
+export class PlainTextRenderer extends BaseRenderer {
+  public contentType = new ContentTypes.PlainText();
 
   constructor(public data: Buffer | string) {
     super();
   }
 
   serialize() {
-    let data = typeof this.data === "string" ? Buffer.from(this.data, "utf-8") : this.data;
+    return new Task<Buffer, never>(({ Ok }) => {
+      if (typeof this.data === "string") {
+        return Ok(Buffer.from(this.data, "utf-8"));
+      }
 
-    return Task.of_ok(data);
+      Ok(this.data);
+    });
   }
 }
 
-export class XMLRenderer extends BaseRenderer {
+export class HTMLRenderer extends PlainTextRenderer {
+  public contentType = new ContentTypes.HTML();
+}
+
+export class XMLRenderer extends PlainTextRenderer {
   public contentType = new ContentTypes.XML();
-
-  constructor(public data: Buffer | string) {
-    super();
-  }
-
-  serialize() {
-    let data = typeof this.data === "string" ? Buffer.from(this.data, "utf-8") : this.data;
-
-    return Task.of_ok(data);
-  }
 }
