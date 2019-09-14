@@ -1,0 +1,24 @@
+{
+  "name": "node-mux",
+  "version": "0.0.1",
+  "description": "A modern multiplexer for Node.js",
+  "main": "lib/main.js",
+  "types": "lib/main.d.ts",
+  "module": "lib/main.js",
+  "scripts": {
+    "build": "rm -rf lib; tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Alex Regan <npm@33mail.alexregan.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^12.7.5",
+    "prettier": "^1.18.2",
+    "typescript": "^3.6.3"
+  },
+  "dependencies": {
+    "chalk": "^2.4.2",
+    "safe-types": "^4.25.0"
+  }
+}
