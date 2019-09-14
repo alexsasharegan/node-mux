@@ -46,11 +46,7 @@ export class StreamLogger implements Logger {
   };
 
   constructor(protected level: number, options: ConsoleLoggerOptions = {}) {
-    let {
-      withColor = false,
-      stream = process.stderr,
-      newLine = NewLine.LF,
-    } = options;
+    let { withColor = false, stream = process.stderr, newLine = NewLine.LF } = options;
     this.withColor = withColor;
     this.stream = stream;
     this.newLine = newLine;
@@ -58,9 +54,7 @@ export class StreamLogger implements Logger {
 
   protected write(label: LogLabel, ...values: any[]) {
     if (this.withColor) {
-      this.stream.write(
-        this.colorizers[label](util.format(this.prefix(label), ...values))
-      );
+      this.stream.write(this.colorizers[label](util.format(this.prefix(label), ...values)));
     } else {
       this.stream.write(util.format(this.prefix(label), ...values));
     }

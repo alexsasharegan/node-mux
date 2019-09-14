@@ -84,11 +84,7 @@ export const enum LogLevel {
    * Convenient shortcut to enable all log levels.
    * Should be used in DEVELOPMENT ONLY.
    */
-  All = LogLevel.Fatal |
-    LogLevel.Error |
-    LogLevel.Warn |
-    LogLevel.Info |
-    LogLevel.Debug,
+  All = LogLevel.Fatal | LogLevel.Error | LogLevel.Warn | LogLevel.Info | LogLevel.Debug,
 }
 
 export const enum LogLabel {

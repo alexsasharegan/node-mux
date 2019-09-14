@@ -1,4 +1,5 @@
 .*
 !.gitignore
+!.prettierrc
 node_modules/
 tmp/

@@ -15,14 +15,12 @@ class BaseRenderer implements Renderer<Error>, enc.Serializeable {
   public data: any;
 
   render(ctx: Context) {
-    return this.serialize().and_then(chunk => {
+    return this.serialize().and_then((chunk) => {
       ctx.response.setHeader("Content-Type", this.contentType.toString());
       ctx.response.setHeader("Content-Length", chunk.byteLength);
 
       return new Task<void, Error>(({ Ok, Err }) => {
-        ctx.response.write(chunk, "utf8", function onWriteRenderedResponse(
-          error
-        ) {
+        ctx.response.write(chunk, "utf8", function onWriteRenderedResponse(error) {
           if (error) {
             return Err(error);
           }
@@ -57,10 +55,7 @@ export class JSONRenderer<T> extends BaseRenderer {
 export class FormUrlEncodedRenderer extends BaseRenderer {
   public contentType = new ContentTypes.FormUrlEncoded();
 
-  constructor(
-    public data: qs.ParsedUrlQueryInput,
-    public options?: qs.StringifyOptions
-  ) {
+  constructor(public data: qs.ParsedUrlQueryInput, public options?: qs.StringifyOptions) {
     super();
   }
 
@@ -103,10 +98,7 @@ export class HTMLRenderer extends BaseRenderer {
   }
 
   serialize() {
-    let data =
-      typeof this.data === "string"
-        ? Buffer.from(this.data, "utf-8")
-        : this.data;
+    let data = typeof this.data === "string" ? Buffer.from(this.data, "utf-8") : this.data;
 
     return Task.of_ok(data);
   }
@@ -120,10 +112,7 @@ export class XMLRenderer extends BaseRenderer {
   }
 
   serialize() {
-    let data =
-      typeof this.data === "string"
-        ? Buffer.from(this.data, "utf-8")
-        : this.data;
+    let data = typeof this.data === "string" ? Buffer.from(this.data, "utf-8") : this.data;
 
     return Task.of_ok(data);
   }

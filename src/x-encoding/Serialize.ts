@@ -22,11 +22,7 @@ export function serializeJSON(
         return Err(error);
       }
 
-      return Err(
-        new Error(
-          `Failed to encode data to content type JSON: ${String(error)}`
-        )
-      );
+      return Err(new Error(`Failed to encode data to content type JSON: ${String(error)}`));
     }
 
     Ok(Buffer.from(serialized, "utf-8"));

@@ -1,13 +1,4 @@
-export type ByteType =
-  | "B"
-  | "KiB"
-  | "MiB"
-  | "GiB"
-  | "TiB"
-  | "KB"
-  | "MB"
-  | "GB"
-  | "TB";
+export type ByteType = "B" | "KiB" | "MiB" | "GiB" | "TiB" | "KB" | "MB" | "GB" | "TB";
 
 export enum ByteUnit {
   B = 1,
@@ -28,10 +19,7 @@ export interface FormatBytesOptions {
   precision?: number;
 }
 
-export function format(
-  bytes: number,
-  options: FormatBytesOptions = {}
-): string {
+export function format(bytes: number, options: FormatBytesOptions = {}): string {
   let { useBinary = false, precision = 1 } = options;
   let u = 0;
   let s = useBinary ? ByteUnit.KiB : ByteUnit.KB;
