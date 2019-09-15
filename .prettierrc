@@ -3,7 +3,7 @@
   "bracketSpacing": true,
   "endOfLine": "lf",
   "printWidth": 100,
-  "proseWrap": "preserve",
+  "proseWrap": "always",
   "quoteProps": "as-needed",
   "semi": true,
   "singleQuote": false,
