@@ -8,7 +8,7 @@ modern Node.js environments, which means Promises are central to the design.
 
 ```js
 import http from "http";
-import { Application, LogLevel, PlainTextResponse } from "node-mux";
+import { Application, PlainTextResponse } from "node-mux";
 
 let app = new Application();
 
