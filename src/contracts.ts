@@ -1,4 +1,5 @@
 import { IncomingMessage, ServerResponse } from "http";
+import { UrlWithStringQuery } from "url";
 
 export const kDidInit: unique symbol = Symbol("node-mux:initialized");
 
@@ -8,6 +9,15 @@ interface MuxRequest {
   [kDidInit]: true;
   context: Map<any, any>;
   logger: Logger;
+  body: null | any;
+  /**
+   * Retrieves the parsed request body.
+   * If the body has not been parsed and this is called,
+   * and error is thrown.
+   */
+  mustBody(): Record<string, any>;
+  query: URLSearchParams;
+  parsedUrl: UrlWithStringQuery;
 }
 
 export interface Response extends ServerResponse, MuxResponse {}
@@ -16,6 +26,7 @@ interface MuxResponse {
   [kDidInit]: true;
   context: Map<any, any>;
   logger: Logger;
+  send(h: Handler): Promise<void>;
 }
 
 export type HandleFunc = (request: Request, response: Response) => Promise<any>;
