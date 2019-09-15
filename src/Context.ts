@@ -1,47 +1,43 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { Logger } from "./log";
-import { isResponder, Responder } from "./response";
+import { isResponder } from "./response";
+import { Application } from "./Application";
+import {
+  Responder,
+  RequestContext,
+  ContextWithLogger,
+  ContextWithStore,
+  ContextWithResponseHelpers,
+  RespondHTTPFunc,
+} from "./contracts";
 
-/**
- * RequestContext contains both the request and the response objects.
- * It is the foundation of any Context interface.
- */
-export interface RequestContext {
-  request: IncomingMessage;
-  response: ServerResponse;
-}
-
-export interface ContextWithLogger {
-  logger: Logger;
-}
-export interface ContextWithStore {
-  store: Map<any, any>;
-}
-
-export interface ContextWithResponseHelpers {
-  send(responder: Responder): Promise<void>;
-}
-
-export interface Context
-  extends RequestContext,
-    ContextWithLogger,
+export interface ContextWithApp<App extends Application = Application>
+  extends ContextWithLogger,
     ContextWithStore,
-    ContextWithResponseHelpers {}
+    ContextWithResponseHelpers {
+  app: App;
+}
 
-export interface ServerContextOptions extends RequestContext {
+export interface ServerContextOptions<App extends Application = Application>
+  extends RequestContext,
+    ContextWithApp<App> {
   logger: Logger;
 }
 
-export class ServerContext implements Context {
+export class ServerContext<App extends Application = Application> implements ContextWithApp<App> {
+  public app: App;
   public request: IncomingMessage;
   public response: ServerResponse;
   public logger: Logger;
   public store = new Map<any, any>();
+  public respondHTTP: RespondHTTPFunc;
 
-  constructor({ logger, request, response }: ServerContextOptions) {
+  constructor({ app, logger, request, response }: ServerContextOptions<App>) {
+    this.app = app;
     this.logger = logger;
     this.request = request;
     this.response = response;
+    this.respondHTTP = async (ctx) => app.serveHTTP(ctx.request, ctx.response);
   }
 
   send = async (responder: Responder) => {

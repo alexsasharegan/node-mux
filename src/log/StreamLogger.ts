@@ -1,6 +1,7 @@
 import * as util from "util";
 import chalk from "chalk";
-import { LogLevel, Logger, levelSatisfies, LogLabel } from "./contracts";
+import { Logger } from "../contracts";
+import { LogLabel, levelSatisfies, LogLevel } from "./shared";
 
 export const enum NewLine {
   /**

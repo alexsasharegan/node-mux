@@ -25,6 +25,21 @@ export class WrappedError<ErrKind = any> extends Error implements Iterable<Wrapp
   }
 
   /**
+   * find runs a predicate function against all the wrapped errors
+   * and returns the error when the predicate returns `true`,
+   * otherwise `undefined`.
+   */
+  find(predicate: (error: WrappedError | ErrKind) => boolean): WrappedError | ErrKind | undefined {
+    for (let e of this) {
+      if (predicate(e)) {
+        return e;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
    * Iterate through the error stack from head to tail (most recent to root error).
    */
   *[Symbol.iterator](): Iterator<WrappedError | ErrKind> {

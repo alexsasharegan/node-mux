@@ -1,4 +1,5 @@
-import { Logger, levelSatisfies, LogLevel } from "./contracts";
+import { Logger } from "../contracts";
+import { levelSatisfies, LogLevel } from "./shared";
 
 /**
  * LogManager wraps any number of logging implementations.

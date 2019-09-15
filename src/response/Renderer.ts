@@ -1,23 +1,7 @@
-import { Context } from "../Context";
 import * as ContentTypes from "../content-type";
 import * as enc from "../x-encoding";
 import { WrappedError } from "../errors/WrappedError";
-
-export type RenderPayloadFunc = (ctx: Context) => Promise<void>;
-
-/**
- * A Renderer writes a payload to the response.
- *
- * The Renderer interface defines a single method `renderPayload`
- * that is responsible for the following:
- *
- * - setting the `Content-Type` & `Content-Length` headers
- * - writing the response payload
- * - returning a Promise that resolves once the payload write has finished
- */
-export interface Renderer {
-  renderPayload: RenderPayloadFunc;
-}
+import { Renderer, RenderPayloadFunc } from "../contracts";
 
 export type JSONReplacer = (this: any, key: string, value: any) => any;
 
@@ -25,14 +9,14 @@ export abstract class BasePayload implements Renderer, enc.Serializeable {
   public abstract contentType: ContentTypes.XContentType;
   public abstract data: any;
 
-  renderPayload: RenderPayloadFunc = async (ctx) => {
+  renderPayload: RenderPayloadFunc = async (response) => {
     let chunk = await this.serialize();
 
-    ctx.response.setHeader("Content-Type", this.contentType.toString());
-    ctx.response.setHeader("Content-Length", chunk.byteLength);
+    response.setHeader("Content-Type", this.contentType.toString());
+    response.setHeader("Content-Length", chunk.byteLength);
 
     await new Promise<void>((resolve, reject) => {
-      ctx.response.write(chunk, "utf8", function onErrorRenderPayload(error) {
+      response.write(chunk, "utf8", function onErrorRenderPayload(error) {
         if (error) {
           reject(
             new WrappedError(`Failed to render payload while writing to the response.`, {
@@ -42,7 +26,7 @@ export abstract class BasePayload implements Renderer, enc.Serializeable {
         }
       });
 
-      ctx.response.end(() => resolve());
+      response.end(() => resolve());
     });
   };
 
@@ -127,9 +111,9 @@ export class StreamedPayload implements Renderer {
     this.data = data;
   }
 
-  renderPayload: RenderPayloadFunc = async (ctx) => {
+  renderPayload: RenderPayloadFunc = async (response) => {
     await new Promise((resolve, reject) => {
-      ctx.response.setHeader("Content-Type", this.contentType.toString());
+      response.setHeader("Content-Type", this.contentType.toString());
 
       this.data.setEncoding("utf8");
 
@@ -138,14 +122,13 @@ export class StreamedPayload implements Renderer {
           `StreamedPayload failed while piping the readable stream to the response.`,
           { previous: error }
         );
-        ctx.logger.error(wrapped);
         reject(wrapped);
       });
 
       this.data.on("end", () => resolve());
 
       this.data.pipe(
-        ctx.response,
+        response,
         { end: true }
       );
     });

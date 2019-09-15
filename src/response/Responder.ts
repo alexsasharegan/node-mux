@@ -1,23 +1,7 @@
-import { Context } from "../Context";
-import { Renderer, JSONReplacer, JSONPayload } from "./Renderer";
-import { OutgoingHttpHeaders } from "http";
+import { JSONReplacer, JSONPayload, PlainTextPayload } from "./Renderer";
+import { OutgoingHttpHeaders, RequestListener, IncomingMessage, ServerResponse } from "http";
 import { StatusCode } from "./status";
-
-export type RespondHTTPFunc = (ctx: Context) => Promise<any>;
-
-/**
- * A Responder responds to an HTTP request.
- *
- * The Responder interface defines a single method `respondHTTP`
- * that is responsible for the following:
- *
- * - setting a status code
- * - sending headers
- * - sending a payload
- */
-export interface Responder {
-  respondHTTP: RespondHTTPFunc;
-}
+import { Renderer, Handler } from "../contracts";
 
 interface BaseResponseParams {
   status?: number;
@@ -28,7 +12,7 @@ export interface ResponseParams extends BaseResponseParams {
   payload: Renderer;
 }
 
-export class Response implements Responder {
+export class Response implements Handler {
   payload: Renderer;
   status: number;
   headers: OutgoingHttpHeaders;
@@ -39,17 +23,21 @@ export class Response implements Responder {
     this.headers = headers;
   }
 
-  respondHTTP: RespondHTTPFunc = async (ctx) => {
-    ctx.response.statusCode = this.status;
+  serveHTTP: RequestListener = async (_request, response) => {
+    response.statusCode = this.status;
 
     for (let [name, value] of Object.entries(this.headers)) {
       if (value === undefined) {
         continue;
       }
-      ctx.response.setHeader(name, value);
+      response.setHeader(name, value);
     }
 
-    await this.payload.renderPayload(ctx);
+    await this.payload.renderPayload(response);
+
+    if (!response.finished) {
+      response.end();
+    }
   };
 }
 
@@ -68,19 +56,24 @@ export class JSONResponse<T = any> extends Response {
   }
 }
 
-export function isResponder(x: any): x is Responder {
-  if (x == null) {
-    return false;
-  }
+export interface PlainTextResponseParams extends BaseResponseParams {
+  data: string;
+}
 
-  if (typeof x.respondHTTP !== "function") {
-    return false;
+export class PlainTextResponse extends Response {
+  constructor({ data, headers, status }: PlainTextResponseParams) {
+    super({
+      headers,
+      payload: new PlainTextPayload(data),
+      status,
+    });
   }
+}
 
-  // The method arity is 1.
-  if (x.respondHTTP.length !== 1) {
-    return false;
+export class NotFoundResponse implements Handler {
+  async serveHTTP(_request: IncomingMessage, response: ServerResponse) {
+    response.statusCode = StatusCode.NotFound;
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    await new PlainTextPayload(`404 page not found`).renderPayload(response);
   }
-
-  return true;
 }
