@@ -5,6 +5,10 @@
   "main": "lib/main.js",
   "types": "lib/main.d.ts",
   "module": "lib/main.js",
+  "files": [
+    "src",
+    "lib"
+  ],
   "scripts": {
     "build": "rm -rf lib; tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
