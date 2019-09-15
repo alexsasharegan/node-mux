@@ -20,7 +20,7 @@ export abstract class BasePayload implements Renderer, enc.Serializeable {
   public abstract contentType: ContentTypes.XContentType;
   public abstract data: any;
 
-  async renderPayload(ctx: Context) {
+  renderPayload = async (ctx: Context) => {
     let chunk = await this.serialize();
 
     ctx.response.setHeader("Content-Type", this.contentType.toString());
@@ -35,7 +35,7 @@ export abstract class BasePayload implements Renderer, enc.Serializeable {
         resolve();
       });
     });
-  }
+  };
 
   abstract serialize(): Promise<Buffer> | Buffer;
 }

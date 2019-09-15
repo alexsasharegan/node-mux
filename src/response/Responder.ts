@@ -35,7 +35,7 @@ export class Response implements Responder {
     this.headers = headers;
   }
 
-  async respondHTTP(ctx: Context) {
+  respondHTTP = async (ctx: Context) => {
     ctx.response.statusCode = this.status;
 
     for (let [name, value] of Object.entries(this.headers)) {
@@ -46,7 +46,7 @@ export class Response implements Responder {
     }
 
     await this.payload.renderPayload(ctx);
-  }
+  };
 }
 
 export interface JSONResponseParams<T> extends BaseResponseParams {
