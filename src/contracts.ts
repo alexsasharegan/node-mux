@@ -1,6 +1,19 @@
 import { IncomingMessage, ServerResponse } from "http";
 
-export type HandleFunc = (request: IncomingMessage, response: ServerResponse) => Promise<any>;
+export interface Request extends IncomingMessage, MuxRequest {}
+
+export interface Response extends ServerResponse, MuxResponse {}
+
+interface MuxRequest {
+  context: Map<any, any>;
+  logger: Logger;
+}
+interface MuxResponse {
+  context: Map<any, any>;
+  logger: Logger;
+}
+
+export type HandleFunc = (request: Request, response: Response) => Promise<any>;
 
 /**
  * A Handler responds to an HTTP request.
@@ -9,10 +22,10 @@ export type HandleFunc = (request: IncomingMessage, response: ServerResponse) =>
  * a RequestListener named `serveHTTP`.
  */
 export interface Handler {
-  serveHTTP(request: IncomingMessage, response: ServerResponse): Promise<any>;
+  serveHTTP(request: Request, response: Response): Promise<any>;
 }
 
-export type RenderPayloadFunc = (response: ServerResponse) => Promise<void>;
+export type ResponseWriterFunc = (response: Response) => Promise<void>;
 
 /**
  * A Renderer writes a payload to the response.
@@ -24,24 +37,32 @@ export type RenderPayloadFunc = (response: ServerResponse) => Promise<void>;
  * - writing the response payload
  * - returning a Promise that resolves once the payload write has finished
  */
-export interface Renderer {
-  renderPayload: RenderPayloadFunc;
+export interface ResponseWriter {
+  writeResponse: ResponseWriterFunc;
 }
 
 /**
- * A middleware function.
+ * AdapterFunc adapts, or decorates, the original handler
+ * and returns a new handler. This allows middleware to operate
+ * before and after the handler responds.
+ *
+ * It is expected that the returned handler calls the original handler,
+ * except in cases where the new handler responds first--like short-circuiting
+ * the request on error and responding.
  */
-export type Adapter = (h: Handler) => Handler;
+export type AdapterFunc = (h: Handler) => Handler;
 
-export type AdapterFactory<T> = (init: T) => Adapter;
+export interface Adapter<Init = any> {
+  adapt(init: Init): AdapterFunc;
+  adapt(): AdapterFunc;
+}
 
 /**
  * RequestContext contains both the request and the response objects.
- * It is the foundation of any Context interface.
  */
 export interface RequestContext {
-  request: IncomingMessage;
-  response: ServerResponse;
+  request: Request;
+  response: Response;
 }
 
 // export interface ContextWithLogger {
@@ -101,4 +122,8 @@ export interface Logger {
    * sensitive application data into logs.
    */
   debug(...values: any[]): void;
+}
+
+export function isHTTPHandler(x: any): x is Handler {
+  return x != null && typeof x.serveHTTP === "function";
 }

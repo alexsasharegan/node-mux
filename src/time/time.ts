@@ -1,4 +1,10 @@
 /**
+ * DurationUnit represents the base unit of time durations work with.
+ * The duration unit is one millisecond.
+ */
+export type DurationUnit = number;
+
+/**
  * A duration is just a time unit in milliseconds.
  */
 export enum Duration {
@@ -37,9 +43,11 @@ export function stringify(duration: number, precision = 1): string {
       }
       return fmt;
     }
+
     case duration < Duration.Millisecond: {
       return `${durationTo.microsecond(duration).toFixed(2)}µs`;
     }
+
     case duration < Duration.Second: {
       let raw = durationTo.millisecond(duration);
       let n = Math.floor(raw);
@@ -50,6 +58,7 @@ export function stringify(duration: number, precision = 1): string {
       }
       return fmt;
     }
+
     case duration < Duration.Minute: {
       let raw = durationTo.second(duration);
       let n = Math.floor(raw);
@@ -60,6 +69,7 @@ export function stringify(duration: number, precision = 1): string {
       }
       return fmt;
     }
+
     case duration < Duration.Hour: {
       let raw = durationTo.minute(duration);
       let n = Math.floor(raw);
@@ -70,6 +80,7 @@ export function stringify(duration: number, precision = 1): string {
       }
       return fmt;
     }
+
     case duration < Duration.Day: {
       let raw = durationTo.hour(duration);
       let n = Math.floor(raw);
@@ -80,6 +91,7 @@ export function stringify(duration: number, precision = 1): string {
       }
       return fmt;
     }
+
     case duration < Duration.Week: {
       let raw = durationTo.day(duration);
       let n = Math.floor(raw);
@@ -91,4 +103,10 @@ export function stringify(duration: number, precision = 1): string {
       return fmt;
     }
   }
+}
+
+export function sleep(d: DurationUnit): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, d);
+  });
 }

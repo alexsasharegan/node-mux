@@ -1,5 +1,4 @@
-import { Handler, HandleFunc } from "./contracts";
-import { IncomingMessage, ServerResponse } from "http";
+import { Handler, HandleFunc, Request, Response } from "./contracts";
 
 export class HTTPHandler implements Handler {
   handleFunc: HandleFunc;
@@ -8,7 +7,7 @@ export class HTTPHandler implements Handler {
     this.handleFunc = fn;
   }
 
-  async serveHTTP(request: IncomingMessage, response: ServerResponse) {
-    await this.handleFunc(request, response);
+  async serveHTTP(rx: Request, wx: Response) {
+    await this.handleFunc(rx, wx);
   }
 }

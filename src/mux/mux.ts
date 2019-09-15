@@ -1,8 +1,6 @@
-import { IncomingMessage, ServerResponse } from "http";
 import url from "url";
-import { LogManager, LogLevel } from "../log";
-import { Handler, HandleFunc } from "../contracts";
-import { StatusCode, NotFoundHandler, RedirectHandler } from "../response";
+import { Handler, HandleFunc, Request } from "../contracts";
+import { StatusCode, RedirectHandler, DefaultNotFoundHandler } from "../response";
 import { endResponse } from "../response/helpers";
 import { HTTPHandler } from "../Handler";
 
@@ -41,23 +39,22 @@ export type Pattern = string;
  * .. elements or repeated slashes to an equivalent, cleaner URL.
  */
 export class ServeMux {
-  logManager: LogManager = new LogManager(LogLevel.All);
-  entriesByPattern: Record<string, MuxEntry> = {};
+  protected entriesByPattern: Map<string, MuxEntry> = new Map();
   /**
    * Entries with trailing slashes sorted from longest to shortest.
    */
-  entries: MuxEntry[] = [];
+  protected entries: MuxEntry[] = [];
 
-  async serveHTTP(request: IncomingMessage, response: ServerResponse) {
-    if (request.url == "*") {
-      response.writeHead(StatusCode.BadRequest);
-      await endResponse(response);
+  serveHTTP: HandleFunc = async (rx, wx) => {
+    if (rx.url == "*") {
+      wx.writeHead(StatusCode.BadRequest);
+      await endResponse(wx);
       return;
     }
 
-    let { handler } = this.handler(request);
-    await handler.serveHTTP(request, response);
-  }
+    let { handler } = this.handler(rx);
+    await handler.serveHTTP(rx, wx);
+  };
 
   public register(pattern: Pattern, handlerFunc: HandleFunc) {
     this.registerHandler(pattern, new HTTPHandler(handlerFunc));
@@ -67,7 +64,7 @@ export class ServeMux {
     this.validatePattern(pattern);
 
     let entry = new MuxEntry(pattern, handler);
-    this.entriesByPattern[pattern] = entry;
+    this.entriesByPattern.set(pattern, entry);
     this.appendSorted(entry);
   }
 
@@ -76,7 +73,7 @@ export class ServeMux {
       throw new TypeError(`Invalid pattern`);
     }
 
-    if (this.entriesByPattern.hasOwnProperty(pattern)) {
+    if (this.entriesByPattern.has(pattern)) {
       throw new Error(`Multiple registrations for ${pattern}`);
     }
   }
@@ -109,7 +106,7 @@ export class ServeMux {
    * If there is no registered handler that applies to the request,
    * Handler returns a "page not found" handler and an empty pattern.
    */
-  public handler(request: IncomingMessage): { handler: Handler; pattern: Pattern } {
+  public handler(request: Request): MuxEntry {
     let originalUrl = request.url;
     if (typeof originalUrl !== "string") {
       throw new TypeError(
@@ -121,17 +118,17 @@ export class ServeMux {
 
     let rd = this.redirectToPathSlash(u);
     if (rd.redirect) {
-      return {
-        handler: new RedirectHandler({ code: StatusCode.MovedPermanently, url: rd.url }),
-        pattern: rd.url,
-      };
+      return new MuxEntry(
+        rd.url,
+        new RedirectHandler({ code: StatusCode.MovedPermanently, url: rd.url })
+      );
     }
 
     return this.match(u.pathname || "");
   }
 
   protected match(path: string): { handler: Handler; pattern: string } {
-    let entry = this.entriesByPattern[path];
+    let entry = this.entriesByPattern.get(path);
     if (entry) {
       return entry;
     }
@@ -142,10 +139,7 @@ export class ServeMux {
       }
     }
 
-    return {
-      handler: new NotFoundHandler(),
-      pattern: "",
-    };
+    return new MuxEntry("", DefaultNotFoundHandler);
   }
 
   protected redirectToPathSlash(
@@ -170,7 +164,7 @@ export class ServeMux {
   }
 
   protected shouldRedirect(path: string) {
-    if (this.entriesByPattern.hasOwnProperty(path)) {
+    if (this.entriesByPattern.has(path)) {
       return false;
     }
 
@@ -179,8 +173,8 @@ export class ServeMux {
       return false;
     }
 
-    if (this.entriesByPattern.hasOwnProperty(path + "/")) {
-      return path[n - 1] !== "/";
+    if (this.entriesByPattern.has(path + "/")) {
+      return !path.endsWith("/");
     }
 
     return false;

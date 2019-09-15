@@ -2,6 +2,7 @@ import { IncomingMessage, ServerResponse } from "http";
 import { randomBytes } from "crypto";
 import os from "os";
 import { Handler } from "../contracts";
+import { HTTPHandler } from "../Handler";
 
 /**
  * RequestID is a middleware that injects a request ID into the context of each
@@ -41,30 +42,26 @@ export class RequestId {
    * Injects a request id in both the request/response objects.
    */
   public static injectIdAdapter(h: Handler): Handler {
-    return {
-      async serveHTTP(request, response) {
-        // @ts-ignore
-        request[RequestId.kRequestId] = response[RequestId.kRequestId] = new RequestId();
-        await h.serveHTTP(request, response);
-      },
-    };
+    return new HTTPHandler(async (rx, wx) => {
+      // @ts-ignore
+      rx[RequestId.kRequestId] = wx[RequestId.kRequestId] = new RequestId();
+      await h.serveHTTP(rx, wx);
+    });
   }
 
   public static setRequestIdHeaderAdapter(h: Handler): Handler {
-    return {
-      async serveHTTP(request, response) {
-        let id = RequestId.extract(request);
-        if (!id) {
-          throw new Error(
-            `The request id hasn't been injected yet. Please add the RequestId.injectMiddleware before this middleware.`
-          );
-        }
+    return new HTTPHandler(async (rx, wx) => {
+      let id = RequestId.extract(rx);
+      if (!id) {
+        throw new Error(
+          `The request id hasn't been injected yet. Please add the RequestId.injectMiddleware before this middleware.`
+        );
+      }
 
-        response.setHeader(RequestId.headerName, id.toString());
+      wx.setHeader(RequestId.headerName, id.toString());
 
-        await h.serveHTTP(request, response);
-      },
-    };
+      await h.serveHTTP(rx, wx);
+    });
   }
 
   /**

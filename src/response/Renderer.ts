@@ -1,21 +1,21 @@
-import * as ContentTypes from "../content-type";
+import * as ContentTypes from "../content-type/content-type";
 import * as enc from "../x-encoding";
-import { Renderer, RenderPayloadFunc } from "../contracts";
+import { ResponseWriter, ResponseWriterFunc } from "../contracts";
 import { writeFinal } from "./helpers";
 
 export type JSONReplacer = (this: any, key: string, value: any) => any;
 
-export abstract class BasePayload implements Renderer, enc.Serializeable {
+export abstract class BasePayload implements ResponseWriter, enc.Serializeable {
   public abstract contentType: ContentTypes.XContentType;
   public abstract data: any;
 
-  renderPayload: RenderPayloadFunc = async (response) => {
+  writeResponse: ResponseWriterFunc = async (wx) => {
     let chunk = await this.serialize();
 
-    response.setHeader("Content-Type", this.contentType.toString());
-    response.setHeader("Content-Length", chunk.byteLength);
+    wx.setHeader("Content-Type", this.contentType.toString());
+    wx.setHeader("Content-Length", chunk.byteLength);
 
-    await writeFinal(response, chunk, "utf8");
+    await writeFinal(wx, chunk, "utf8");
   };
 
   abstract serialize(): Promise<Buffer> | Buffer;
@@ -90,7 +90,7 @@ export interface StreamedPayloadParams {
   contentType: string;
 }
 
-export class StreamedPayload implements Renderer {
+export class StreamedPayload implements ResponseWriter {
   contentType: ContentTypes.Custom;
   data: NodeJS.ReadableStream;
 
@@ -99,15 +99,15 @@ export class StreamedPayload implements Renderer {
     this.data = data;
   }
 
-  renderPayload: RenderPayloadFunc = async (response) => {
+  writeResponse: ResponseWriterFunc = async (wx) => {
     await new Promise((resolve, reject) => {
-      response.setHeader("Content-Type", this.contentType.toString());
+      wx.setHeader("Content-Type", this.contentType.toString());
 
       this.data.setEncoding("utf8");
       this.data.on("error", reject);
       this.data.on("end", resolve);
       this.data.pipe(
-        response,
+        wx,
         { end: true }
       );
     });

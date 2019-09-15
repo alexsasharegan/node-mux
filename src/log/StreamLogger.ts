@@ -30,7 +30,7 @@ export class StreamLogger implements Logger {
   isRoot = true;
   newLine: NewLine;
   withColor: boolean;
-  stream: NodeJS.WriteStream;
+  wx: NodeJS.WriteStream;
   colorizers = {
     [LogLabel.Fatal]: chalk.red,
     [LogLabel.Error]: chalk.red,
@@ -49,17 +49,17 @@ export class StreamLogger implements Logger {
   constructor(protected level: number, options: ConsoleLoggerOptions = {}) {
     let { withColor = false, stream = process.stderr, newLine = NewLine.LF } = options;
     this.withColor = withColor;
-    this.stream = stream;
+    this.wx = stream;
     this.newLine = newLine;
   }
 
   protected write(label: LogLabel, ...values: any[]) {
     if (this.withColor) {
-      this.stream.write(this.colorizers[label](util.format(this.prefix(label), ...values)));
+      this.wx.write(this.colorizers[label](util.format(this.prefix(label), ...values)));
     } else {
-      this.stream.write(util.format(this.prefix(label), ...values));
+      this.wx.write(util.format(this.prefix(label), ...values));
     }
-    this.stream.write(this.newLine);
+    this.wx.write(this.newLine);
   }
 
   protected prefix(label: LogLabel): string {
