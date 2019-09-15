@@ -57,9 +57,8 @@ export interface ResponseWriter {
  */
 export type AdapterFunc = (h: Handler) => Handler;
 
-export interface Adapter<Init = any> {
-  adapt(init: Init): AdapterFunc;
-  adapt(): AdapterFunc;
+export interface Adapter {
+  adapt: AdapterFunc;
 }
 
 /**

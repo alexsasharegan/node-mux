@@ -1,8 +1,9 @@
 import url from "url";
-import { Handler, HandleFunc, Request } from "../contracts";
+import { Handler, HandleFunc, Request, Adapter } from "../contracts";
 import { StatusCode, RedirectHandler, DefaultNotFoundHandler } from "../response";
 import { endResponse } from "../response/helpers";
 import { HTTPHandler } from "../Handler";
+import { pipeAdapters } from "../middleware";
 
 export type Pattern = string;
 
@@ -45,7 +46,7 @@ export class ServeMux {
    */
   protected entries: MuxEntry[] = [];
 
-  serveHTTP: HandleFunc = async (rx, wx) => {
+  public serveHTTP: HandleFunc = async (rx, wx) => {
     if (rx.url == "*") {
       wx.writeHead(StatusCode.BadRequest);
       await endResponse(wx);
@@ -56,16 +57,24 @@ export class ServeMux {
     await handler.serveHTTP(rx, wx);
   };
 
-  public register(pattern: Pattern, handlerFunc: HandleFunc) {
-    this.registerHandler(pattern, new HTTPHandler(handlerFunc));
+  public withAdapters(...adapters: Adapter[]): this {
+    let h = pipeAdapters({ serveHTTP: this.serveHTTP }, adapters);
+    this.serveHTTP = h.serveHTTP.bind(h);
+    return this;
   }
 
-  public registerHandler(pattern: Pattern, handler: Handler) {
+  public register(pattern: Pattern, handlerFunc: HandleFunc): this {
+    return this.registerHandler(pattern, new HTTPHandler(handlerFunc));
+  }
+
+  public registerHandler(pattern: Pattern, handler: Handler): this {
     this.validatePattern(pattern);
 
     let entry = new MuxEntry(pattern, handler);
     this.entriesByPattern.set(pattern, entry);
     this.appendSorted(entry);
+
+    return this;
   }
 
   protected validatePattern(pattern: Pattern) {

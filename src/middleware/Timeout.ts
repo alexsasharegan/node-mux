@@ -1,5 +1,5 @@
 import { DurationUnit, sleep } from "../time";
-import { Adapter, Handler, Request, Response, AdapterFunc } from "../contracts";
+import { Adapter, Handler, Request, Response } from "../contracts";
 import { DefaultNotFoundHandler, DefaultRequestTimeoutHandler } from "../response";
 
 export class TimeoutHandler implements Handler, Adapter {
@@ -7,11 +7,9 @@ export class TimeoutHandler implements Handler, Adapter {
 
   constructor(public timeout: DurationUnit) {}
 
-  adapt(): AdapterFunc {
-    return (h) => {
-      this.handler = h;
-      return this;
-    };
+  adapt(h: Handler): Handler {
+    this.handler = h;
+    return this;
   }
 
   async serveHTTP(rx: Request, wx: Response) {

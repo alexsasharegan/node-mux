@@ -1,11 +1,18 @@
-import { AdapterFunc, Handler } from "../contracts";
+import { AdapterFunc, Handler, Adapter } from "../contracts";
 
-export function composeMiddleware(root: Handler, adapters: AdapterFunc[]): Handler {
-  let h = root;
+export function pipeAdapterFuncs(h: Handler, adapterFuncs: AdapterFunc[]): Handler {
+  for (let i = adapterFuncs.length - 1; i >= 0; i--) {
+    let adapterFunc = adapterFuncs[i];
+    h = adapterFunc(h);
+  }
 
+  return h;
+}
+
+export function pipeAdapters(h: Handler, adapters: Adapter[]): Handler {
   for (let i = adapters.length - 1; i >= 0; i--) {
-    let a = adapters[i];
-    h = a(h);
+    let adapter = adapters[i];
+    h = adapter.adapt(h);
   }
 
   return h;
