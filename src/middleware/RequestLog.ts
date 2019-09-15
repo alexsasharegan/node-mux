@@ -49,8 +49,8 @@ export class RequestLog {
     response.on("finish", this.onFinish);
 
     this.response = response;
-    this.uri = request.url;
-    this.method = request.method;
+    this.uri = request.url || "";
+    this.method = request.method || "";
     this.httpVersion += request.httpVersion;
     this.setIpAddr(request);
     this.requestId = RequestId.extract(request);
@@ -160,12 +160,12 @@ export class RequestLog {
   public static middleware(options: RequestLogOptions): Adapter {
     return function requestLoggingAdapter(h) {
       return {
-        serveHTTP(request, response) {
+        async serveHTTP(request, response) {
           // The instance does not get garbage collected at the end of this function body
           // because the constructor sets up a response "finish" event listener.
           // The response emitter keeps this reference live until it is destroyed.
           new RequestLog(request, response, options);
-          h.serveHTTP(request, response);
+          await h.serveHTTP(request, response);
         },
       };
     };

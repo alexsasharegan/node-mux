@@ -1,6 +1,6 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { randomBytes } from "crypto";
-import * as os from "os";
+import os from "os";
 import { Handler } from "../contracts";
 
 /**
@@ -38,21 +38,21 @@ export class RequestId {
   }
 
   /**
-   * Connect middleware to inject a request id in both the request/response objects.
+   * Injects a request id in both the request/response objects.
    */
-  public static injectMiddleware(h: Handler): Handler {
+  public static injectIdAdapter(h: Handler): Handler {
     return {
-      serveHTTP(request, response) {
+      async serveHTTP(request, response) {
         // @ts-ignore
         request[RequestId.kRequestId] = response[RequestId.kRequestId] = new RequestId();
-        h.serveHTTP(request, response);
+        await h.serveHTTP(request, response);
       },
     };
   }
 
-  public static setHeaderMiddleware(h: Handler): Handler {
+  public static setRequestIdHeaderAdapter(h: Handler): Handler {
     return {
-      serveHTTP(request, response) {
+      async serveHTTP(request, response) {
         let id = RequestId.extract(request);
         if (!id) {
           throw new Error(
@@ -62,7 +62,7 @@ export class RequestId {
 
         response.setHeader(RequestId.headerName, id.toString());
 
-        h.serveHTTP(request, response);
+        await h.serveHTTP(request, response);
       },
     };
   }
@@ -86,24 +86,27 @@ export class RequestId {
    * The hostname as defined by the operating system.
    */
   protected static readonly hostname = os.hostname() || "localhost";
+
   /**
-	 * A string combining hostname + process guid:
-     * ```
-hostname/sf354as8d9
-```
-	 */
+   * A string combining hostname + process guid:
+   * ```js
+   * "hostname/sf354as8d9"
+   * ```
+   */
   protected static readonly prefix = `${RequestId.hostname}/${RequestId.processGuid()}`;
+
   /**
    * Global request counter.
    */
   protected static id = 0;
+
   /**
-     * The Symbol used to securely store a reference to a RequestId object on the request/response.
-     *
-	 * ```
-Symbol(x-request-id)
-```
-	 */
+   * The Symbol used to securely store a reference to a RequestId object on the request/response.
+   *
+   * ```js
+   * Symbol(x-request-id)
+   * ```
+   */
   protected static get kRequestId(): Symbol {
     return Symbol.for("x-request-id");
   }

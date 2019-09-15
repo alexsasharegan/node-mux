@@ -1,4 +1,4 @@
-import * as util from "util";
+import util from "util";
 import chalk from "chalk";
 import { Logger } from "../contracts";
 import { LogLabel, levelSatisfies, LogLevel } from "./shared";

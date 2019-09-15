@@ -1,7 +1,12 @@
-import { RequestListener, IncomingMessage } from "http";
+import { IncomingMessage, ServerResponse } from "http";
+import url from "url";
 import { LogManager, LogLevel } from "../log";
-import { Handler } from "../contracts";
-import { StatusCode, NotFoundResponse } from "../response";
+import { Handler, HandleFunc } from "../contracts";
+import { StatusCode, NotFoundHandler, RedirectHandler } from "../response";
+import { endResponse } from "../response/helpers";
+import { HTTPHandler } from "../Handler";
+
+export type Pattern = string;
 
 /**
  * ServeMux is an HTTP request multiplexer.
@@ -37,55 +42,143 @@ import { StatusCode, NotFoundResponse } from "../response";
  */
 export class ServeMux {
   logManager: LogManager = new LogManager(LogLevel.All);
-  entriesByPath: Record<string, MuxEntry> = {};
+  entriesByPattern: Record<string, MuxEntry> = {};
+  /**
+   * Entries with trailing slashes sorted from longest to shortest.
+   */
   entries: MuxEntry[] = [];
 
-  serveHTTP: RequestListener = async (request, response) => {
+  async serveHTTP(request: IncomingMessage, response: ServerResponse) {
     if (request.url == "*") {
       response.writeHead(StatusCode.BadRequest);
-      await new Promise((resolve) => {
-        response.end(() => resolve());
-      });
+      await endResponse(response);
       return;
     }
 
-    let handler = this.handler(request);
-  };
+    let { handler } = this.handler(request);
+    await handler.serveHTTP(request, response);
+  }
 
-  protected handler(request: IncomingMessage) {
-    if (request.method === "CONNECT") {
-      // If r.URL.Path is /tree and its handler is not registered,
-      // the /tree -> /tree/ redirect applies to CONNECT requests
-      // but the path canonicalization does not.
-      // if u, ok := mux.redirectToPathSlash(r.URL.Host, r.URL.Path, r.URL); ok {
-      // 	return RedirectHandler(u.String(), StatusMovedPermanently), u.Path
-      // }
-      // return mux.handler(r.Host, r.URL.Path)
+  public register(pattern: Pattern, handlerFunc: HandleFunc) {
+    this.registerHandler(pattern, new HTTPHandler(handlerFunc));
+  }
+
+  public registerHandler(pattern: Pattern, handler: Handler) {
+    this.validatePattern(pattern);
+
+    let entry = new MuxEntry(pattern, handler);
+    this.entriesByPattern[pattern] = entry;
+    this.appendSorted(entry);
+  }
+
+  protected validatePattern(pattern: Pattern) {
+    if (pattern === "") {
+      throw new TypeError(`Invalid pattern`);
+    }
+
+    if (this.entriesByPattern.hasOwnProperty(pattern)) {
+      throw new Error(`Multiple registrations for ${pattern}`);
     }
   }
 
-  protected match(path: string): { handler: Handler; pattern: string } {
-    let entry = this.entriesByPath[path];
-    if (entry) {
+  protected appendSorted(entry: MuxEntry) {
+    let p = entry.pattern;
+    if (!p.endsWith("/")) {
+      return;
+    }
+
+    let n = this.entries.length;
+    let i = this.entries.findIndex(({ pattern }) => pattern.length < p.length);
+    if (i === -1 || i == n - 1) {
+      this.entries.push(entry);
+    } else {
+      this.entries.splice(i, 0, entry);
+    }
+  }
+
+  /**
+   * Handler returns the handler to use for the given request,
+   * consulting request.method and request.url. It always returns
+   * a handler. If the path is not in its canonical form, the
+   * handler will be an internally-generated handler that redirects
+   * to the canonical path. If the host contains a port, it is ignored
+   * when matching handlers.
+   * Handler also returns the registered pattern that matches the
+   * request or, in the case of internally-generated redirects,
+   * the pattern that will match after following the redirect.
+   * If there is no registered handler that applies to the request,
+   * Handler returns a "page not found" handler and an empty pattern.
+   */
+  public handler(request: IncomingMessage): { handler: Handler; pattern: Pattern } {
+    let originalUrl = request.url;
+    if (typeof originalUrl !== "string") {
+      throw new TypeError(
+        `Failed to access the request url. Cannot run outside of a server context.`
+      );
+    }
+
+    let u = url.parse(originalUrl);
+
+    let rd = this.redirectToPathSlash(u);
+    if (rd.redirect) {
       return {
-        handler: entry.handler,
-        pattern: entry.pattern,
+        handler: new RedirectHandler({ code: StatusCode.MovedPermanently, url: rd.url }),
+        pattern: rd.url,
       };
+    }
+
+    return this.match(u.path || "");
+  }
+
+  protected match(path: string): { handler: Handler; pattern: string } {
+    let entry = this.entriesByPattern[path];
+    if (entry) {
+      return entry;
     }
 
     for (let entry of this.entries) {
       if (entry.pattern.startsWith(path)) {
-        return {
-          handler: entry.handler,
-          pattern: entry.pattern,
-        };
+        return entry;
       }
     }
 
     return {
-      handler: new NotFoundResponse(),
+      handler: new NotFoundHandler(),
       pattern: "",
     };
+  }
+
+  protected redirectToPathSlash(
+    u: url.UrlWithStringQuery
+  ): { redirect: true; url: string } | { redirect: false; url: null } {
+    if (this.shouldRedirect(u.path || "")) {
+      return {
+        redirect: true,
+        url: `${u.path}?${new URLSearchParams(u.search)}`,
+      };
+    }
+
+    return {
+      redirect: false,
+      url: null,
+    };
+  }
+
+  protected shouldRedirect(path: string) {
+    if (this.entriesByPattern.hasOwnProperty(path)) {
+      return false;
+    }
+
+    let n = path.length;
+    if (n === 0) {
+      return false;
+    }
+
+    if (this.entriesByPattern.hasOwnProperty(path + "/")) {
+      return path[n - 1] !== "/";
+    }
+
+    return false;
   }
 }
 

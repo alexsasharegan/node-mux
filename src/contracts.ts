@@ -1,6 +1,6 @@
-import { RequestListener, IncomingMessage, ServerResponse } from "http";
+import { IncomingMessage, ServerResponse } from "http";
 
-// export type RequestListener = (req: IncomingMessage, res: ServerResponse) => Promise<any>;
+export type HandleFunc = (request: IncomingMessage, response: ServerResponse) => Promise<any>;
 
 /**
  * A Handler responds to an HTTP request.
@@ -9,24 +9,8 @@ import { RequestListener, IncomingMessage, ServerResponse } from "http";
  * a RequestListener named `serveHTTP`.
  */
 export interface Handler {
-  serveHTTP: RequestListener;
+  serveHTTP(request: IncomingMessage, response: ServerResponse): Promise<any>;
 }
-
-// export type RespondHTTPFunc = (ctx: Context) => Promise<any>;
-
-/**
- * A Responder responds to an HTTP request.
- *
- * The Responder interface defines a single method `respondHTTP`
- * that is responsible for the following:
- *
- * - setting a status code
- * - sending headers
- * - sending a payload
- */
-// export interface Responder {
-//   respondHTTP: RespondHTTPFunc;
-// }
 
 export type RenderPayloadFunc = (response: ServerResponse) => Promise<void>;
 
@@ -49,6 +33,8 @@ export interface Renderer {
  */
 export type Adapter = (h: Handler) => Handler;
 
+export type AdapterFactory<T> = (init: T) => Adapter;
+
 /**
  * RequestContext contains both the request and the response objects.
  * It is the foundation of any Context interface.
@@ -58,19 +44,19 @@ export interface RequestContext {
   response: ServerResponse;
 }
 
-export interface ContextWithLogger {
-  logger: Logger;
-}
+// export interface ContextWithLogger {
+//   logger: Logger;
+// }
 
-export interface ContextWithStore {
-  store: Map<any, any>;
-}
+// export interface ContextWithStore {
+//   store: Map<any, any>;
+// }
 
 // export interface ContextWithResponseHelpers {
 //   send(responder: Responder): Promise<void>;
 // }
 
-export interface Context extends RequestContext, ContextWithLogger, ContextWithStore {}
+// export interface Context extends RequestContext, ContextWithLogger, ContextWithStore {}
 
 /**
  * Logger serves as an application abstraction that should allow for different

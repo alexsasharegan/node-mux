@@ -1,7 +1,7 @@
 import * as ContentTypes from "../content-type";
 import * as enc from "../x-encoding";
-import { WrappedError } from "../errors/WrappedError";
 import { Renderer, RenderPayloadFunc } from "../contracts";
+import { writeFinal } from "./helpers";
 
 export type JSONReplacer = (this: any, key: string, value: any) => any;
 
@@ -15,19 +15,7 @@ export abstract class BasePayload implements Renderer, enc.Serializeable {
     response.setHeader("Content-Type", this.contentType.toString());
     response.setHeader("Content-Length", chunk.byteLength);
 
-    await new Promise<void>((resolve, reject) => {
-      response.write(chunk, "utf8", function onErrorRenderPayload(error) {
-        if (error) {
-          reject(
-            new WrappedError(`Failed to render payload while writing to the response.`, {
-              previous: error,
-            })
-          );
-        }
-      });
-
-      response.end(() => resolve());
-    });
+    await writeFinal(response, chunk, "utf8");
   };
 
   abstract serialize(): Promise<Buffer> | Buffer;
@@ -116,17 +104,8 @@ export class StreamedPayload implements Renderer {
       response.setHeader("Content-Type", this.contentType.toString());
 
       this.data.setEncoding("utf8");
-
-      this.data.on("error", (error) => {
-        let wrapped = new WrappedError(
-          `StreamedPayload failed while piping the readable stream to the response.`,
-          { previous: error }
-        );
-        reject(wrapped);
-      });
-
-      this.data.on("end", () => resolve());
-
+      this.data.on("error", reject);
+      this.data.on("end", resolve);
       this.data.pipe(
         response,
         { end: true }

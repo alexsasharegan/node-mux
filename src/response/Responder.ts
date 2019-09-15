@@ -1,7 +1,8 @@
 import { JSONReplacer, JSONPayload, PlainTextPayload } from "./Renderer";
-import { OutgoingHttpHeaders, RequestListener, IncomingMessage, ServerResponse } from "http";
+import { OutgoingHttpHeaders, IncomingMessage, ServerResponse } from "http";
 import { StatusCode } from "./status";
-import { Renderer, Handler } from "../contracts";
+import { Renderer, Handler, HandleFunc, RequestContext } from "../contracts";
+import { endResponse } from "./helpers";
 
 interface BaseResponseParams {
   status?: number;
@@ -23,7 +24,7 @@ export class Response implements Handler {
     this.headers = headers;
   }
 
-  serveHTTP: RequestListener = async (_request, response) => {
+  serveHTTP: HandleFunc = async (_request, response) => {
     response.statusCode = this.status;
 
     for (let [name, value] of Object.entries(this.headers)) {
@@ -70,10 +71,31 @@ export class PlainTextResponse extends Response {
   }
 }
 
-export class NotFoundResponse implements Handler {
+export class NotFoundHandler implements Handler {
   async serveHTTP(_request: IncomingMessage, response: ServerResponse) {
     response.statusCode = StatusCode.NotFound;
     response.setHeader("X-Content-Type-Options", "nosniff");
     await new PlainTextPayload(`404 page not found`).renderPayload(response);
+  }
+}
+
+export class RedirectHandler implements Handler {
+  url: string;
+  code: number;
+  constructor(params: { url: string; code: number }) {
+    this.code = params.code;
+    this.url = params.url;
+  }
+
+  async serveHTTP(request: IncomingMessage, response: ServerResponse) {
+    RedirectHandler.redirect({ request, response, code: this.code, url: this.url });
+    await endResponse(response);
+  }
+
+  static redirect(params: RequestContext & { url: string; code: number }) {
+    let { code, response, url } = params;
+
+    response.setHeader("Location", url);
+    response.statusCode = code;
   }
 }
