@@ -11,18 +11,20 @@
   ],
   "scripts": {
     "build": "rm -rf lib; tsc",
-    "test": "npm run build && node test/server.js"
+    "test": "jest --verbose"
   },
   "keywords": [],
   "author": "Alex Regan <npm@33mail.alexregan.com>",
   "license": "MIT",
   "devDependencies": {
+    "@types/jest": "^24.0.18",
     "@types/node": "^12.7.5",
+    "jest": "^24.9.0",
     "prettier": "^1.18.2",
+    "ts-jest": "^24.1.0",
     "typescript": "^3.6.3"
   },
   "dependencies": {
-    "chalk": "^2.4.2",
-    "safe-types": "^4.25.0"
+    "chalk": "^2.4.2"
   }
 }
