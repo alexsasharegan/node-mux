@@ -1,5 +1,6 @@
 export enum ContentType {
-  _,
+  Custom,
+
   FormUrlEncoded,
   HTML,
   JSON,
@@ -15,6 +16,9 @@ export class XContentType {
     switch (this.type) {
       default:
         throw new TypeError(`Unknown content type: ${this.type}`);
+
+      case ContentType.Custom:
+        throw new Error(`Custom content must override the toString method.`);
 
       case ContentType.FormUrlEncoded:
         return "application/x-www-form-urlencoded; charset=utf-8";
@@ -65,5 +69,15 @@ export class RawData extends XContentType {
 export class XML extends XContentType {
   constructor() {
     super(ContentType.XML);
+  }
+}
+
+export class Custom extends XContentType {
+  constructor(public headerValue: string) {
+    super(ContentType.Custom);
+  }
+
+  toString() {
+    return this.headerValue;
   }
 }

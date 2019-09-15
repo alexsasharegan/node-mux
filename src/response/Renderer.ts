@@ -31,14 +31,18 @@ export abstract class BasePayload implements Renderer, enc.Serializeable {
     ctx.response.setHeader("Content-Type", this.contentType.toString());
     ctx.response.setHeader("Content-Length", chunk.byteLength);
 
-    return new Promise<void>((resolve, reject) => {
-      ctx.response.write(chunk, "utf8", function onWriteRenderedResponse(error) {
+    await new Promise<void>((resolve, reject) => {
+      ctx.response.write(chunk, "utf8", function onErrorRenderPayload(error) {
         if (error) {
-          return reject(error);
+          reject(
+            new WrappedError(`Failed to render payload while writing to the response.`, {
+              previous: error,
+            })
+          );
         }
-
-        resolve();
       });
+
+      ctx.response.end(() => resolve());
     });
   };
 
