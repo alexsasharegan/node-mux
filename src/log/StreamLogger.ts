@@ -16,7 +16,7 @@ export const enum NewLine {
 
 export interface ConsoleLoggerOptions {
   withColor?: boolean;
-  stream?: NodeJS.WriteStream;
+  stream?: NodeJS.WritableStream;
   newLine?: NewLine;
 }
 
@@ -30,7 +30,7 @@ export class StreamLogger implements Logger {
   isRoot = true;
   newLine: NewLine;
   withColor: boolean;
-  wx: NodeJS.WriteStream;
+  wx: NodeJS.WritableStream;
   colorizers = {
     [LogLabel.Fatal]: chalk.red,
     [LogLabel.Error]: chalk.red,

@@ -4,7 +4,7 @@ import { IncomingMessage, ServerResponse } from "http";
 import * as bytes from "../bytes";
 import { RequestId } from "./RequestId";
 import * as time from "../time";
-import { AdapterFunc, Handler } from "../contracts";
+import { Handler, Request, Response } from "../contracts";
 import { HTTPHandler } from "../Handler";
 
 enum NewLine {
@@ -20,7 +20,7 @@ enum NewLine {
 
 export interface RequestLogOptions {
   withColors?: boolean;
-  stream?: NodeJS.WriteStream;
+  streams?: NodeJS.WritableStream[];
   newLine?: NewLine;
 }
 
@@ -38,13 +38,13 @@ export class RequestLog {
   protected response: ServerResponse;
   protected withColors: boolean;
   protected newLine: NewLine;
-  protected stream: NodeJS.WriteStream;
+  protected streams: NodeJS.WritableStream[] = [];
 
-  constructor(request: IncomingMessage, response: ServerResponse, options: RequestLogOptions = {}) {
-    let { withColors = false, stream = process.stderr, newLine = NewLine.LF } = options;
+  constructor(request: Request, response: Response, options: RequestLogOptions = {}) {
+    let { withColors = false, streams = [process.stderr], newLine = NewLine.LF } = options;
 
     this.withColors = withColors;
-    this.stream = stream;
+    this.streams.push(...streams);
     this.newLine = newLine;
 
     response.on("finish", this.onFinish);
@@ -78,7 +78,9 @@ export class RequestLog {
       this.contentLength = String(contentLength);
     }
 
-    this.stream.write(this.format() + this.newLine);
+    for (let wx of this.streams) {
+      wx.write(this.format() + this.newLine);
+    }
   };
 
   protected format(): string {
