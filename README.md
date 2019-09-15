@@ -8,9 +8,29 @@ modern Node.js environments, which means Promises are central to the design.
 
 ```js
 import http from "http";
-import { Application, PlainTextResponse, RequestId, RequestLog } from "node-mux";
+import fs from "fs";
+import {
+  Application,
+  LogManager,
+  LogLevel,
+  StreamLogger,
+  PlainTextResponse,
+  RequestId,
+  RequestLog,
+} from "node-mux";
 
-let app = new Application();
+let logStream = fs.createWriteStream("/var/log/node/test.log", {
+  flags: "a",
+  encoding: "utf8",
+});
+
+let logManager = new LogManager(
+  LogLevel.All,
+  new StreamLogger(LogLevel.All, { withColor: false, stream: logStream }),
+  new StreamLogger(LogLevel.All, { withColor: true, stream: process.stderr })
+);
+
+let app = new Application({ logManager });
 
 RequestLog.adapterOptions.withColors = true;
 app.withAdapters(RequestId, RequestLog);
