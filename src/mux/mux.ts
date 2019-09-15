@@ -127,7 +127,7 @@ export class ServeMux {
       };
     }
 
-    return this.match(u.path || "");
+    return this.match(u.pathname || "");
   }
 
   protected match(path: string): { handler: Handler; pattern: string } {
@@ -151,10 +151,15 @@ export class ServeMux {
   protected redirectToPathSlash(
     u: url.UrlWithStringQuery
   ): { redirect: true; url: string } | { redirect: false; url: null } {
-    if (this.shouldRedirect(u.path || "")) {
+    if (this.shouldRedirect(u.pathname || "")) {
+      let q = "";
+      if (u.search) {
+        q = `?${new URLSearchParams(u.search)}`;
+      }
+
       return {
         redirect: true,
-        url: `${u.path}?${new URLSearchParams(u.search)}`,
+        url: `${u.pathname}/${q}`,
       };
     }
 
