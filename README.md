@@ -12,16 +12,17 @@ import { Application, PlainTextResponse, RequestId, RequestLog } from "node-mux"
 
 let app = new Application();
 
-app.withAdapters(
-  RequestId.injectIdAdapter,
-  RequestId.setRequestIdHeaderAdapter,
-  new RequestLog({ withColors: true })
-);
+RequestLog.adapterOptions.withColors = true;
+app.withAdapters(RequestId, RequestLog);
 
 app.get("/", async (rx, wx) => {
+  rx.logger.info(`Received a request on the '/' route.`);
+
   let res = new PlainTextResponse({
     data: `Hello World!`,
   });
+
+  rx.logger.debug(res);
 
   await res.serveHTTP(rx, wx);
 });
