@@ -14,12 +14,19 @@ export interface RequestContext {
 export interface ContextWithLogger {
   logger: Logger;
 }
+export interface ContextWithStore {
+  store: Map<any, any>;
+}
 
 export interface ContextWithResponseHelpers {
   send(responder: Responder): Promise<void>;
 }
 
-export interface Context extends RequestContext, ContextWithLogger, ContextWithResponseHelpers {}
+export interface Context
+  extends RequestContext,
+    ContextWithLogger,
+    ContextWithStore,
+    ContextWithResponseHelpers {}
 
 export interface ServerContextOptions extends RequestContext {
   logger: Logger;
@@ -29,6 +36,7 @@ export class ServerContext implements Context {
   public request: IncomingMessage;
   public response: ServerResponse;
   public logger: Logger;
+  public store = new Map<any, any>();
 
   constructor({ logger, request, response }: ServerContextOptions) {
     this.logger = logger;
