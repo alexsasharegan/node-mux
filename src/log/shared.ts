@@ -8,7 +8,7 @@
  * let levelErrorWarn = LogLevel.Error | LogLevel.Warn;
  * ```
  */
-export const enum LogLevel {
+export enum LogLevel {
   /**
    * No logging allowed.
    */
