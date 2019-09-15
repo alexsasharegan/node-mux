@@ -1,9 +1,8 @@
 import url from "url";
 import { Handler, HandleFunc, Request, Adapter } from "../contracts";
-import { StatusCode, RedirectHandler, DefaultNotFoundHandler } from "../response";
-import { endResponse } from "../response/helpers";
+import { StatusCode, RedirectHandler, DefaultNotFoundHandler, endResponse } from "../response";
 import { HTTPHandler } from "../Handler";
-import { pipeAdapters } from "../middleware";
+import { pipeAdapters } from "../adapters";
 
 export type Pattern = string;
 

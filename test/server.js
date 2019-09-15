@@ -1,17 +1,28 @@
 const http = require("http");
 const mux = require("../lib/main");
 
-let app = new mux.ServeMux();
-let logger = new mux.StreamLogger(mux.LogLevel.All, { withColor: true });
+let app = new mux.Application({
+  logManager: new mux.LogManager(
+    mux.LogLevel.All,
+    new mux.StreamLogger(mux.LogLevel.All, { withColor: true })
+  ),
+});
 
-app.registerHandler(
-  "/",
-  new mux.PlainTextResponse({
+mux.RequestLog.adapterOptions.withColors = true;
+
+app.mux.withAdapters(mux.RequestId, mux.RequestId, mux.RequestLog);
+
+app.mux.register("/", async (rx, wx) => {
+  rx.logger.info(`Received a request on the '/' route.`);
+
+  let res = new mux.PlainTextResponse({
     data: `Hello World!`,
-  })
-);
+  });
 
-app.registerHandler(
+  await res.serveHTTP(rx, wx);
+});
+
+app.mux.registerHandler(
   "/user/",
   new mux.JSONResponse({
     data: {
@@ -20,32 +31,19 @@ app.registerHandler(
       agency: "S.H.I.E.L.D.",
     },
     status: 201,
+    headers: {
+      "X-Powered-By": "node-mux",
+      "X-Test-Value": "foo",
+    },
   })
 );
 
-let withLogging = mux.RequestLog.middleware({
-  withColors: true,
-});
-
-let handler = mux.composeMiddleware(app, [
-  mux.RequestId.injectIdAdapter,
-  mux.RequestId.setRequestIdHeaderAdapter,
-  withLogging,
-]);
-
-let server = http.createServer(async (request, response) => {
-  try {
-    await handler.serveHTTP(request, response);
-  } catch (error) {
-    logger.error(error);
-    response.end();
-  }
-});
+let server = http.createServer(app.serveHTTP);
 
 server.listen(3000, () => {
-  logger.info(`Server listening on port 3000.`);
+  app.logManager.info(`Server listening on port 3000.`);
 });
 
 server.on("close", () => {
-  logger.warn(`Server stopping.`);
+  app.logManager.warn(`Server stopping.`);
 });

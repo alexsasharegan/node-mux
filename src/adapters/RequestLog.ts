@@ -4,7 +4,7 @@ import { IncomingMessage, ServerResponse } from "http";
 import * as bytes from "../bytes";
 import { RequestId } from "./RequestId";
 import * as time from "../time";
-import { AdapterFunc } from "../contracts";
+import { AdapterFunc, Handler } from "../contracts";
 import { HTTPHandler } from "../Handler";
 
 enum NewLine {
@@ -154,21 +154,17 @@ export class RequestLog {
     return this;
   }
 
-  /**
-   * A function returning a connect middleware to perform request logging.
-   * Options passed here are supplied to the RequestLog instance on each request.
-   */
-  public static middleware(options: RequestLogOptions): AdapterFunc {
-    return function requestLoggingAdapter(h) {
-      return new HTTPHandler(async (rx, wx) => {
-        // The instance does not get garbage collected at the end of this function body
-        // because the constructor sets up a response "finish" event listener.
-        // The response emitter keeps this reference live until it is destroyed.
-        new RequestLog(rx, wx, options);
-        await h.serveHTTP(rx, wx);
-      });
-    };
+  public static adapt(h: Handler): Handler {
+    return new HTTPHandler(async (rx, wx) => {
+      // The instance does not get garbage collected at the end of this function body
+      // because the constructor sets up a response "finish" event listener.
+      // The response emitter keeps this reference live until it is destroyed.
+      new RequestLog(rx, wx, RequestLog.adapterOptions);
+      await h.serveHTTP(rx, wx);
+    });
   }
+
+  public static adapterOptions: RequestLogOptions = {};
 
   public static NewLine = NewLine;
 }

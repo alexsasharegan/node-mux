@@ -38,28 +38,12 @@ export class RequestId {
     return this.toString();
   }
 
-  /**
-   * Injects a request id in both the request/response objects.
-   */
-  public static injectIdAdapter(h: Handler): Handler {
+  public static adapt(h: Handler): Handler {
     return new HTTPHandler(async (rx, wx) => {
+      let id = new RequestId();
       // @ts-ignore
-      rx[RequestId.kRequestId] = wx[RequestId.kRequestId] = new RequestId();
-      await h.serveHTTP(rx, wx);
-    });
-  }
-
-  public static setRequestIdHeaderAdapter(h: Handler): Handler {
-    return new HTTPHandler(async (rx, wx) => {
-      let id = RequestId.extract(rx);
-      if (!id) {
-        throw new Error(
-          `The request id hasn't been injected yet. Please add the RequestId.injectMiddleware before this middleware.`
-        );
-      }
-
+      rx[RequestId.kRequestId] = wx[RequestId.kRequestId] = id;
       wx.setHeader(RequestId.headerName, id.toString());
-
       await h.serveHTTP(rx, wx);
     });
   }
