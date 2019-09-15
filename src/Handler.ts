@@ -9,6 +9,6 @@ export class HTTPHandler implements Handler {
   }
 
   async serveHTTP(request: IncomingMessage, response: ServerResponse) {
-    await this.serveHTTP(request, response);
+    await this.handleFunc(request, response);
   }
 }
