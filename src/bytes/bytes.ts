@@ -49,20 +49,24 @@ export function toBytes(b: number, unit: ByteType) {
 
     case "B":
       return b * ByteUnit.B;
+
     case "KiB":
       return b * ByteUnit.KiB;
-    case "MiB":
-      return b * ByteUnit.MiB;
-    case "GiB":
-      return b * ByteUnit.GiB;
-    case "TiB":
-      return b * ByteUnit.TiB;
     case "KB":
       return b * ByteUnit.KB;
+
+    case "MiB":
+      return b * ByteUnit.MiB;
     case "MB":
       return b * ByteUnit.MB;
+
+    case "GiB":
+      return b * ByteUnit.GiB;
     case "GB":
       return b * ByteUnit.GB;
+
+    case "TiB":
+      return b * ByteUnit.TiB;
     case "TB":
       return b * ByteUnit.TB;
   }

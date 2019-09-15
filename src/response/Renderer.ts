@@ -10,7 +10,7 @@ export abstract class BasePayload implements ResponseWriter, enc.Serializeable {
   public abstract data: any;
 
   writeResponse: ResponseWriterFunc = async (wx) => {
-    let chunk = await this.serialize();
+    let chunk = this.serialize();
 
     wx.setHeader("Content-Type", this.contentType.toString());
     wx.setHeader("Content-Length", chunk.byteLength);
@@ -18,11 +18,11 @@ export abstract class BasePayload implements ResponseWriter, enc.Serializeable {
     await writeFinal(wx, chunk, "utf8");
   };
 
-  abstract serialize(): Promise<Buffer> | Buffer;
+  abstract serialize(): Buffer;
 }
 
 export class JSONPayload<T> extends BasePayload {
-  public contentType = new ContentTypes.JSON();
+  public contentType = ContentTypes.JSON;
   public replacer?: JSONReplacer;
 
   constructor(public data: T, options: { replacer?: JSONReplacer } = {}) {
@@ -38,7 +38,7 @@ export class JSONPayload<T> extends BasePayload {
 }
 
 export class FormUrlEncodedPayload extends BasePayload {
-  public contentType = new ContentTypes.FormUrlEncoded();
+  public contentType = ContentTypes.FormUrlEncoded;
 
   constructor(public data: enc.FormUrlEncodableData, public options?: enc.FormUrlEncodingOptions) {
     super();
@@ -50,7 +50,7 @@ export class FormUrlEncodedPayload extends BasePayload {
 }
 
 export class RawDataPayload extends BasePayload {
-  public contentType = new ContentTypes.RawData();
+  public contentType = ContentTypes.RawData;
 
   constructor(public data: Buffer) {
     super();
@@ -62,7 +62,7 @@ export class RawDataPayload extends BasePayload {
 }
 
 export class PlainTextPayload extends BasePayload {
-  public contentType = new ContentTypes.PlainText();
+  public contentType = ContentTypes.PlainText;
 
   constructor(public data: Buffer | string) {
     super();
@@ -78,11 +78,11 @@ export class PlainTextPayload extends BasePayload {
 }
 
 export class HTMLPayload extends PlainTextPayload {
-  public contentType = new ContentTypes.HTML();
+  public contentType = ContentTypes.HTML;
 }
 
 export class XMLPayload extends PlainTextPayload {
-  public contentType = new ContentTypes.XML();
+  public contentType = ContentTypes.XML;
 }
 
 export interface StreamedPayloadParams {

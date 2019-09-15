@@ -1,14 +1,7 @@
-import { JSONReplacer, JSONPayload, PlainTextPayload } from "./Renderer";
 import { OutgoingHttpHeaders } from "http";
+import { Request, Response, ResponseWriter, Handler, HandleFunc } from "../contracts";
+import { JSONReplacer, JSONPayload, PlainTextPayload } from "./Renderer";
 import { StatusCode } from "./status";
-import {
-  Request,
-  Response,
-  ResponseWriter,
-  Handler,
-  HandleFunc,
-  RequestContext,
-} from "../contracts";
 import { endResponse } from "./helpers";
 
 interface BaseResponseParams {
@@ -82,21 +75,24 @@ export const DefaultNotFoundHandler: Handler = {
   async serveHTTP(_, wx) {
     wx.statusCode = StatusCode.NotFound;
     wx.setHeader("X-Content-Type-Options", "nosniff");
-    await new PlainTextPayload(`404 page not found`).writeResponse(wx);
+    let payload = new JSONPayload({ message: `404 page not found` });
+    await payload.writeResponse(wx);
   },
 };
 
 export const DefaultInternalServerErrorHandler: Handler = {
   async serveHTTP(_, wx) {
     wx.statusCode = StatusCode.InternalServerError;
-    await new PlainTextPayload(`500 internal server error`).writeResponse(wx);
+    let payload = new JSONPayload({ message: `500 internal server error` });
+    await payload.writeResponse(wx);
   },
 };
 
 export const DefaultRequestTimeoutHandler: Handler = {
   async serveHTTP(_, wx) {
     wx.statusCode = StatusCode.RequestTimeout;
-    await new PlainTextPayload(`408 request timeout`).writeResponse(wx);
+    let payload = new JSONPayload({ message: `408 request timeout` });
+    await payload.writeResponse(wx);
   },
 };
 
@@ -108,15 +104,15 @@ export class RedirectHandler implements Handler {
     this.url = params.url;
   }
 
-  async serveHTTP(request: Request, response: Response) {
-    RedirectHandler.redirect({ request, response, code: this.code, url: this.url });
-    await endResponse(response);
+  async serveHTTP(_: Request, wx: Response) {
+    await RedirectHandler.redirect(wx, { code: this.code, url: this.url });
   }
 
-  static redirect(params: RequestContext & { url: string; code: number }) {
-    let { code, response, url } = params;
+  static async redirect(wx: Response, params: { url: string; code: number }) {
+    let { code, url } = params;
 
-    response.setHeader("Location", url);
-    response.statusCode = code;
+    wx.setHeader("Location", url);
+    wx.statusCode = code;
+    await endResponse(wx);
   }
 }

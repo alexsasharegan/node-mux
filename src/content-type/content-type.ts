@@ -36,37 +36,37 @@ export class XContentType {
   }
 }
 
-export class FormUrlEncoded extends XContentType {
+class $FormUrlEncoded extends XContentType {
   constructor() {
     super(ContentType.FormUrlEncoded);
   }
 }
 
-export class HTML extends XContentType {
+class $HTML extends XContentType {
   constructor() {
     super(ContentType.HTML);
   }
 }
 
-export class JSON extends XContentType {
+class $JSON extends XContentType {
   constructor() {
     super(ContentType.JSON);
   }
 }
 
-export class PlainText extends XContentType {
+class $PlainText extends XContentType {
   constructor() {
     super(ContentType.PlainText);
   }
 }
 
-export class RawData extends XContentType {
+class $RawData extends XContentType {
   constructor() {
     super(ContentType.RawData);
   }
 }
 
-export class XML extends XContentType {
+class $XML extends XContentType {
   constructor() {
     super(ContentType.XML);
   }
@@ -81,3 +81,10 @@ export class Custom extends XContentType {
     return this.headerValue;
   }
 }
+
+export const FormUrlEncoded: XContentType = new $FormUrlEncoded();
+export const HTML: XContentType = new $HTML();
+export const JSON: XContentType = new $JSON();
+export const PlainText: XContentType = new $PlainText();
+export const RawData: XContentType = new $RawData();
+export const XML: XContentType = new $XML();

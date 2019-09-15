@@ -1,7 +1,7 @@
 import qs from "querystring";
 
 export interface Serializeable {
-  serialize(): Promise<Buffer> | Buffer;
+  serialize(): Buffer;
 }
 
 type JSONReplacer = (this: any, key: string, value: any) => any;
