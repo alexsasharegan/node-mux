@@ -1,4 +1,5 @@
-import { Handler, HandleFunc, RequestContext, isHTTPHandler, Request, Response } from "./contracts";
+import { IncomingMessage, ServerResponse } from "http";
+import { Handler, isHTTPHandler, Request, Response, kDidInit } from "./contracts";
 import { LogManager, LogLevel, StreamLogger, StructuredLog } from "./log";
 import { ServeMux } from "./mux";
 import { endResponse } from "./response/helpers";
@@ -19,13 +20,13 @@ export class Application implements Handler {
     this.logManager = logManager;
   }
 
-  serveHTTP: HandleFunc = async (rx, wx) => {
-    this.addContext({ request: rx, response: wx });
+  serveHTTP = async (request: Request | IncomingMessage, response: Response | ServerResponse) => {
+    let [rx, wx] = this.contextualize(request, response);
 
-    this.execHandler(rx, wx, this.mux);
+    await this.execHandler(rx, wx, this.mux);
   };
 
-  protected async execHandler(rx: Request, wx: Response, h: Handler) {
+  protected async execHandler(rx: Request, wx: Response, h: Handler): Promise<void> {
     try {
       await h.serveHTTP(rx, wx);
     } catch (error) {
@@ -40,8 +41,7 @@ export class Application implements Handler {
 
       // If a handler was thrown, so we'll execute the handler.
       if (isHTTPHandler(error)) {
-        this.execHandler(rx, wx, error);
-        return;
+        return this.execHandler(rx, wx, error);
       }
 
       // If no handler was thrown AND headers are not sent,
@@ -53,8 +53,15 @@ export class Application implements Handler {
     await endResponse(wx);
   }
 
-  protected addContext({ request: rx, response: wx }: RequestContext) {
+  protected contextualize(rx: any, wx: any): [Request, Response] {
+    if (rx[kDidInit] && wx[kDidInit]) {
+      return [rx, wx];
+    }
+
     wx.context = rx.context = new Map();
     wx.logger = rx.logger = this.logManager;
+    rx[kDidInit] = wx[kDidInit] = true;
+
+    return [rx, wx];
   }
 }

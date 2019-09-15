@@ -1,14 +1,19 @@
 import { IncomingMessage, ServerResponse } from "http";
 
+export const kDidInit: unique symbol = Symbol("node-mux:initialized");
+
 export interface Request extends IncomingMessage, MuxRequest {}
 
-export interface Response extends ServerResponse, MuxResponse {}
-
 interface MuxRequest {
+  [kDidInit]: true;
   context: Map<any, any>;
   logger: Logger;
 }
+
+export interface Response extends ServerResponse, MuxResponse {}
+
 interface MuxResponse {
+  [kDidInit]: true;
   context: Map<any, any>;
   logger: Logger;
 }
