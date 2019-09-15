@@ -3,7 +3,11 @@ import { Renderer, JSONReplacer, JSONPayload } from "./Renderer";
 import { OutgoingHttpHeaders } from "http";
 import { StatusCode } from "./status";
 
+export type RespondHTTPFunc = (ctx: Context) => Promise<any>;
+
 /**
+ * A Responder responds to an HTTP request.
+ *
  * The Responder interface defines a single method `respondHTTP`
  * that is responsible for the following:
  *
@@ -12,7 +16,7 @@ import { StatusCode } from "./status";
  * - sending a payload
  */
 export interface Responder {
-  respondHTTP(ctx: Context): Promise<any>;
+  respondHTTP: RespondHTTPFunc;
 }
 
 interface BaseResponseParams {
@@ -35,7 +39,7 @@ export class Response implements Responder {
     this.headers = headers;
   }
 
-  respondHTTP = async (ctx: Context) => {
+  respondHTTP: RespondHTTPFunc = async (ctx) => {
     ctx.response.statusCode = this.status;
 
     for (let [name, value] of Object.entries(this.headers)) {

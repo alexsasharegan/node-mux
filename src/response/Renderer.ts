@@ -1,8 +1,13 @@
 import { Context } from "../Context";
 import * as ContentTypes from "../content-type";
 import * as enc from "../x-encoding";
+import { WrappedError } from "../errors/WrappedError";
+
+export type RenderPayloadFunc = (ctx: Context) => Promise<void>;
 
 /**
+ * A Renderer writes a payload to the response.
+ *
  * The Renderer interface defines a single method `renderPayload`
  * that is responsible for the following:
  *
@@ -11,7 +16,7 @@ import * as enc from "../x-encoding";
  * - returning a Promise that resolves once the payload write has finished
  */
 export interface Renderer {
-  renderPayload(ctx: Context): Promise<void>;
+  renderPayload: RenderPayloadFunc;
 }
 
 export type JSONReplacer = (this: any, key: string, value: any) => any;
@@ -20,7 +25,7 @@ export abstract class BasePayload implements Renderer, enc.Serializeable {
   public abstract contentType: ContentTypes.XContentType;
   public abstract data: any;
 
-  renderPayload = async (ctx: Context) => {
+  renderPayload: RenderPayloadFunc = async (ctx) => {
     let chunk = await this.serialize();
 
     ctx.response.setHeader("Content-Type", this.contentType.toString());
@@ -102,4 +107,43 @@ export class HTMLPayload extends PlainTextPayload {
 
 export class XMLPayload extends PlainTextPayload {
   public contentType = new ContentTypes.XML();
+}
+
+export interface StreamedPayloadParams {
+  data: NodeJS.ReadableStream;
+  contentType: string;
+}
+
+export class StreamedPayload implements Renderer {
+  contentType: ContentTypes.Custom;
+  data: NodeJS.ReadableStream;
+
+  constructor({ contentType, data }: StreamedPayloadParams) {
+    this.contentType = new ContentTypes.Custom(contentType);
+    this.data = data;
+  }
+
+  renderPayload: RenderPayloadFunc = async (ctx) => {
+    await new Promise((resolve, reject) => {
+      ctx.response.setHeader("Content-Type", this.contentType.toString());
+
+      this.data.setEncoding("utf8");
+
+      this.data.on("error", (error) => {
+        let wrapped = new WrappedError(
+          `StreamedPayload failed while piping the readable stream to the response.`,
+          { previous: error }
+        );
+        ctx.logger.error(wrapped);
+        reject(wrapped);
+      });
+
+      this.data.on("end", () => resolve());
+
+      this.data.pipe(
+        ctx.response,
+        { end: true }
+      );
+    });
+  };
 }
