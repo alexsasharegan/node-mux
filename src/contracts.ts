@@ -9,11 +9,20 @@ interface MuxRequest {
   [kDidInit]: true;
   context: Map<any, any>;
   logger: Logger;
+  xUrl: string;
+  /**
+   * The verified, normalized request method.
+   *
+   * Since the method property is shared across IncomingMessages,
+   * it's normally nullable. Since this runs in an HTTP context,
+   * we can verify and upgrade the original method type.
+   */
+  xMethod: "GET" | "HEAD" | "POST" | "PUT" | "PATCH" | "DELETE" | "CONNECT" | "OPTIONS" | "TRACE";
   body: null | any;
   /**
    * Retrieves the parsed request body.
    * If the body has not been parsed and this is called,
-   * and error is thrown.
+   * an error is thrown.
    */
   mustBody(): Record<string, any>;
   /**

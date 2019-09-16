@@ -5,6 +5,7 @@ import { LogManager, LogLevel, StreamLogger, StructuredLog } from "./log";
 import { ServeMux } from "./mux";
 import { endResponse } from "./response/helpers";
 import { DefaultInternalServerErrorHandler } from "./response";
+import { matchMethod } from "./request/methods";
 
 export interface ApplicationOptions {
   logManager?: LogManager;
@@ -72,6 +73,8 @@ export class Application implements Handler {
     wx.logger = rx.logger = this.logManager;
 
     // Request fields.
+    rx.xUrl = rx.url || "";
+    rx.xMethod = matchMethod(rx.method || "");
     rx.body = null;
     rx.bodyConsumed = false;
     rx.mustBody = function mustBody() {
