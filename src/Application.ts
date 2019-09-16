@@ -5,7 +5,7 @@ import { LogManager, LogLevel, StreamLogger, StructuredLog } from "./log";
 import { Router } from "./mux";
 import { endResponse } from "./response/helpers";
 import { DefaultInternalServerErrorHandler } from "./response";
-import { matchMethod } from "./request/methods";
+import { matchMethod } from "./request";
 
 export interface ApplicationOptions {
   logManager?: LogManager;
@@ -29,6 +29,7 @@ export class Application implements Handler {
     let [rx, wx] = this.contextualize(request, response);
 
     await this.execHandler(rx, wx, this.router);
+    await this.close(rx, wx);
   };
 
   public useAdapters(...adapters: Adapter[]): this {
@@ -36,21 +37,45 @@ export class Application implements Handler {
     return this;
   }
 
+  protected async close(rx: Request, wx: Response) {
+    // Clean up resources.
+    await endResponse(wx);
+    rx.unpipe();
+  }
+
+  /**
+   * execHandler is responsible for running a Handler and recovering from failure.
+   *
+   * - When a failure occurs and a Handler is caught, try running the Handler (recursive).
+   * - When a failure occurs and isn't a Handler, log it.
+   * - When a failure occurs and headers are sent, ensure any error is logged
+   *   and return immediately.
+   * - When a failure occurs and no Handler is available, serve a 500.
+   */
   protected async execHandler(rx: Request, wx: Response, h: Handler): Promise<void> {
     try {
       await h.serveHTTP(rx, wx);
     } catch (error) {
-      this.logManager.error(new StructuredLog(error));
+      let isHandlerError = isHTTPHandler(error);
 
-      // With headers already sent, we can't send a 500.
+      // Don't log an intentionally thrown Handler.
+      if (!isHandlerError) {
+        this.logManager.error(new StructuredLog(error));
+      }
+
+      // With headers already sent, we can't recover the response.
       if (wx.headersSent) {
-        // Clean up and exit this request's lifecycle.
-        await endResponse(wx);
+        // Since we skipped logging the Handler earlier,
+        // but it is now known to be unusable,
+        // recover logging the error.
+        if (isHandlerError) {
+          this.logManager.error(new StructuredLog(error));
+        }
         return;
       }
 
       // If a handler was thrown, so we'll execute the handler.
-      if (isHTTPHandler(error)) {
+      if (isHandlerError) {
         return this.execHandler(rx, wx, error);
       }
 
@@ -58,22 +83,25 @@ export class Application implements Handler {
       // we can respond with a 500.
       await DefaultInternalServerErrorHandler.serveHTTP(rx, wx);
     }
-
-    // Clean up resources.
-    await endResponse(wx);
-    rx.unpipe();
   }
 
-  protected contextualize(rx: any, wx: any): [Request, Response] {
+  protected contextualize(request: IncomingMessage, response: ServerResponse): [Request, Response] {
+    // @ts-unsafe bypass type checks here while we do the type upgrade dirty work.
+    let rx: any = request;
+    let wx: any = response;
+
+    // Don't allow the request/response to be initialized twice.
     if (rx[kDidInit] && wx[kDidInit]) {
       return [rx, wx];
     }
 
     // Symmetric fields.
-    wx.context = rx.context = new Map();
+    // -------------------------------------------------------------------------
+    wx.store = rx.store = new Map();
     wx.logger = rx.logger = this.logManager;
 
     // Request fields.
+    // -------------------------------------------------------------------------
     rx.xUrl = rx.url || "";
     rx.xMethod = matchMethod(rx.method || "");
     rx.body = null;
@@ -87,6 +115,7 @@ export class Application implements Handler {
     };
 
     // Response fields.
+    // -------------------------------------------------------------------------
     wx.send = async function send(h: Handler) {
       await h.serveHTTP(rx, wx);
     };
@@ -100,7 +129,7 @@ export class Application implements Handler {
       query: null,
     };
 
-    let cachedGetter: () => NonNullable<Refs> = () => {
+    let getRefs: () => NonNullable<Refs> = () => {
       if (refs.parsedUrl != null && refs.query != null) {
         return refs;
       }
@@ -109,16 +138,18 @@ export class Application implements Handler {
       return refs;
     };
 
+    // Lazily parsed url fields
     Object.defineProperties(rx, {
       query: {
-        get: () => cachedGetter().query,
+        get: () => getRefs().query,
       },
       parsedUrl: {
-        get: () => cachedGetter().parsedUrl,
+        get: () => getRefs().parsedUrl,
       },
     });
 
     // The request/response have now been initialized.
+    // -------------------------------------------------------------------------
     rx[kDidInit] = wx[kDidInit] = true;
 
     return [rx, wx];

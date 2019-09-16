@@ -4,7 +4,8 @@ import { Handler, HandleFunc, Request, Adapter } from "../contracts";
 import { StatusCode, RedirectHandler, DefaultNotFoundHandler, endResponse } from "../response";
 import { HTTPHandler } from "../Handler";
 import { pipeAdapters } from "../adapters";
-import { AnyMethod, Method, methodMap } from "../request/methods";
+import { AnyMethod, Method, methodMap } from "../request";
+import { RouteBuilderContext, RouteBuilder } from "./RouteBuilder";
 
 export class Router {
   protected byPattern: Map<string, Route> = new Map();
@@ -16,6 +17,13 @@ export class Router {
 
   constructor(public readonly mountPath: string) {}
 
+  /**
+   * The HandleFunc implementation. When called, matches a route Handler
+   * and dispatches the request to that Handler.
+   *
+   * Must be a bound function to preserve the Router's `this`
+   * when composing Adapters.
+   */
   public serveHTTP: HandleFunc = async (rx, wx) => {
     if (rx.url == "*") {
       wx.writeHead(StatusCode.BadRequest);
@@ -33,6 +41,8 @@ export class Router {
    */
   public useAdapters(...adapters: Adapter[]): this {
     let h = pipeAdapters(this, adapters);
+    // This changes the receiver of serveHTTP to this Router.
+    // Preserve the original receiver.
     this.serveHTTP = h.serveHTTP.bind(h);
     return this;
   }
@@ -46,42 +56,63 @@ export class Router {
 
   // #region method registration aliases
 
+  /**
+   * Handle requests with the given pattern for all HTTP methods.
+   */
   public all(pattern: string, f: HandleFunc): this {
     return this.registerHandler(pattern, new HTTPHandler(f), AnyMethod);
   }
-
+  /**
+   * Handle requests with the given pattern for HTTP GET.
+   */
   public get(pattern: string, f: HandleFunc): this {
     return this.registerHandler(pattern, new HTTPHandler(f), methodMap[Method.Get]);
   }
-
+  /**
+   * Handle requests with the given pattern for HTTP HEAD.
+   */
   public head(pattern: string, f: HandleFunc): this {
     return this.registerHandler(pattern, new HTTPHandler(f), methodMap[Method.Head]);
   }
-
+  /**
+   * Handle requests with the given pattern for HTTP POST.
+   */
   public post(pattern: string, f: HandleFunc): this {
     return this.registerHandler(pattern, new HTTPHandler(f), methodMap[Method.Post]);
   }
-
+  /**
+   * Handle requests with the given pattern for HTTP PUT.
+   */
   public put(pattern: string, f: HandleFunc): this {
     return this.registerHandler(pattern, new HTTPHandler(f), methodMap[Method.Put]);
   }
-
+  /**
+   * Handle requests with the given pattern for HTTP PATCH.
+   */
   public patch(pattern: string, f: HandleFunc): this {
     return this.registerHandler(pattern, new HTTPHandler(f), methodMap[Method.Patch]);
   }
-
+  /**
+   * Handle requests with the given pattern for HTTP DELETE.
+   */
   public delete(pattern: string, f: HandleFunc): this {
     return this.registerHandler(pattern, new HTTPHandler(f), methodMap[Method.Delete]);
   }
-
+  /**
+   * Handle requests with the given pattern for HTTP CONNECT.
+   */
   public connect(pattern: string, f: HandleFunc): this {
     return this.registerHandler(pattern, new HTTPHandler(f), methodMap[Method.Connect]);
   }
-
+  /**
+   * Handle requests with the given pattern for HTTP OPTIONS.
+   */
   public options(pattern: string, f: HandleFunc): this {
     return this.registerHandler(pattern, new HTTPHandler(f), methodMap[Method.Options]);
   }
-
+  /**
+   * Handle requests with the given pattern for HTTP TRACE.
+   */
   public trace(pattern: string, f: HandleFunc): this {
     return this.registerHandler(pattern, new HTTPHandler(f), methodMap[Method.Trace]);
   }
@@ -140,13 +171,7 @@ export class Router {
    * If there is no registered handler that applies to the request,
    * Handler returns a "page not found" handler and an empty pattern.
    */
-  public handler(rx: Request): Route {
-    if (typeof rx.xUrl !== "string") {
-      throw new TypeError(
-        `Failed to access the request url. Cannot run outside of a server context.`
-      );
-    }
-
+  protected handler(rx: Request): Route {
     let u = url.parse(path.normalize(rx.xUrl));
 
     let rd = this.redirectToPathSlash(u);
@@ -174,14 +199,6 @@ export class Router {
     }
 
     return new Route("", DefaultNotFoundHandler, methodFlag);
-  }
-
-  protected matchMethod(method: number): boolean {
-    if (method === methodMap.HEAD && !this.byMethod.has(method)) {
-      method = methodMap.GET;
-    }
-
-    return this.byMethod.has(method);
   }
 
   protected redirectToPathSlash(
@@ -225,88 +242,4 @@ export class Router {
 
 class Route {
   constructor(public pattern: string, public handler: Handler, public methodFlag: number) {}
-}
-
-export interface RouteBuilderContext<OriginalContext extends Router> {
-  all(pattern: string, f: HandleFunc): OriginalContext;
-  get(pattern: string, f: HandleFunc): OriginalContext;
-  head(pattern: string, f: HandleFunc): OriginalContext;
-  post(pattern: string, f: HandleFunc): OriginalContext;
-  put(pattern: string, f: HandleFunc): OriginalContext;
-  patch(pattern: string, f: HandleFunc): OriginalContext;
-  delete(pattern: string, f: HandleFunc): OriginalContext;
-  connect(pattern: string, f: HandleFunc): OriginalContext;
-  options(pattern: string, f: HandleFunc): OriginalContext;
-  trace(pattern: string, f: HandleFunc): OriginalContext;
-}
-
-class RouteBuilder<Root extends Router> implements RouteBuilderContext<Root> {
-  constructor(private ctx: Root, private adapters: Adapter[]) {}
-
-  all(p: string, f: HandleFunc) {
-    return this.ctx.registerHandler(p, pipeAdapters(new HTTPHandler(f), this.adapters), AnyMethod);
-  }
-  get(p: string, f: HandleFunc) {
-    return this.ctx.registerHandler(
-      p,
-      pipeAdapters(new HTTPHandler(f), this.adapters),
-      methodMap[Method.Get]
-    );
-  }
-  head(p: string, f: HandleFunc) {
-    return this.ctx.registerHandler(
-      p,
-      pipeAdapters(new HTTPHandler(f), this.adapters),
-      methodMap[Method.Head]
-    );
-  }
-  post(p: string, f: HandleFunc) {
-    return this.ctx.registerHandler(
-      p,
-      pipeAdapters(new HTTPHandler(f), this.adapters),
-      methodMap[Method.Post]
-    );
-  }
-  put(p: string, f: HandleFunc) {
-    return this.ctx.registerHandler(
-      p,
-      pipeAdapters(new HTTPHandler(f), this.adapters),
-      methodMap[Method.Put]
-    );
-  }
-  patch(p: string, f: HandleFunc) {
-    return this.ctx.registerHandler(
-      p,
-      pipeAdapters(new HTTPHandler(f), this.adapters),
-      methodMap[Method.Patch]
-    );
-  }
-  delete(p: string, f: HandleFunc) {
-    return this.ctx.registerHandler(
-      p,
-      pipeAdapters(new HTTPHandler(f), this.adapters),
-      methodMap[Method.Delete]
-    );
-  }
-  connect(p: string, f: HandleFunc) {
-    return this.ctx.registerHandler(
-      p,
-      pipeAdapters(new HTTPHandler(f), this.adapters),
-      methodMap[Method.Connect]
-    );
-  }
-  options(p: string, f: HandleFunc) {
-    return this.ctx.registerHandler(
-      p,
-      pipeAdapters(new HTTPHandler(f), this.adapters),
-      methodMap[Method.Options]
-    );
-  }
-  trace(p: string, f: HandleFunc) {
-    return this.ctx.registerHandler(
-      p,
-      pipeAdapters(new HTTPHandler(f), this.adapters),
-      methodMap[Method.Trace]
-    );
-  }
 }

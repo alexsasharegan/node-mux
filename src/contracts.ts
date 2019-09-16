@@ -6,9 +6,21 @@ export const kDidInit: unique symbol = Symbol("node-mux:initialized");
 export interface Request extends IncomingMessage, MuxRequest {}
 
 interface MuxRequest {
+  /**
+   * Used by the root Application to initialize the request/response objects.
+   */
   [kDidInit]: true;
-  context: Map<any, any>;
+  /**
+   * A place to put your stuff.
+   */
+  store: Map<any, any>;
+  /**
+   * An application logger.
+   */
   logger: Logger;
+  /**
+   * The verified url string.
+   */
   xUrl: string;
   /**
    * The verified, normalized request method.
@@ -30,16 +42,39 @@ interface MuxRequest {
    * it must set this flag to true to ensure no other readers consume it.
    */
   bodyConsumed: boolean;
+  /**
+   * The parsed original url.
+   * Parsed lazily (upon access).
+   */
   parsedUrl: UrlWithStringQuery;
+  /**
+   * The parsed query string.
+   * Parsed lazily (upon access).
+   */
   query: URLSearchParams;
 }
 
 export interface Response extends ServerResponse, MuxResponse {}
 
 interface MuxResponse {
+  /**
+   * Used by the root Application to initialize the request/response objects.
+   */
   [kDidInit]: true;
-  context: Map<any, any>;
+  /**
+   * A place to put your stuff.
+   */
+  store: Map<any, any>;
+  /**
+   * An application logger.
+   */
   logger: Logger;
+  /**
+   * A convenience function to run a Handler to completion.
+   * This can be useful when functions return Handlers
+   * that you want to send without the ceremony
+   * of invoking their `serveHTTP` method.
+   */
   send(h: Handler): Promise<void>;
 }
 
@@ -62,9 +97,9 @@ export function isHTTPHandler(x: any): x is Handler {
 export type ResponseWriterFunc = (response: Response) => Promise<void>;
 
 /**
- * A Renderer writes a payload to the response.
+ * A ResponseWriter writes a payload to the response.
  *
- * The Renderer interface defines a single method `renderPayload`
+ * The ResponseWriter interface defines a single method `writeResponse`
  * that is responsible for the following:
  *
  * - setting the `Content-Type` & `Content-Length` headers
