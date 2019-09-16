@@ -40,7 +40,7 @@ Since Handlers are objects, they can leverage their own state to process the req
 HandleFunc is a stateless version of the Handler. It still conforms the `serverHTTP`
 signature--accepting a request and a response, and returning a Promise resolving upon
 completion--but does so without the need of an object. HandleFunc functions can easily be embedded
-into an objects `serveHTTP` property to create a Handler.
+into object to create a Handler.
 
 #### Errors
 
