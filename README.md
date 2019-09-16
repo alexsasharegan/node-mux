@@ -17,6 +17,8 @@ import {
   PlainTextResponse,
   RequestId,
   RequestLog,
+  JSONReader,
+  toBytes,
 } from "node-mux";
 
 let logStream = fs.createWriteStream("/var/log/node/test.log", {
@@ -33,7 +35,11 @@ let logManager = new LogManager(
 let app = new Application({ logManager });
 
 RequestLog.adapterOptions.withColors = true;
-app.withAdapters(RequestId, RequestLog);
+let readJson = new JSONReader({
+  limit: toBytes(100, "KiB"),
+  encoding: "utf8",
+});
+app.withAdapters(RequestId, RequestLog, readJson);
 
 app.get("/", async (rx, wx) => {
   rx.logger.info(`Received a request on the '/' route.`);

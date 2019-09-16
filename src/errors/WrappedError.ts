@@ -1,14 +1,13 @@
+export interface WrappedErrorParams<E> {
+  code?: number | string;
+  previous?: E;
+}
+
 export class WrappedError<ErrKind = any> extends Error implements Iterable<WrappedError | ErrKind> {
   previous: ErrKind | null = null;
   code: number | string = 0;
 
-  constructor(
-    message: string,
-    params: {
-      code?: number | string;
-      previous?: ErrKind;
-    } = {}
-  ) {
+  constructor(message: string, params: WrappedErrorParams<ErrKind> = {}) {
     super(message);
 
     // We update the error's name to distinguish it from the base Error.

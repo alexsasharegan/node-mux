@@ -34,6 +34,29 @@ export class XContentType {
         return "application/xml; charset=utf-8";
     }
   }
+
+  get baseString(): string {
+    switch (this.type) {
+      default:
+        throw new TypeError(`Unknown content type: ${this.type}`);
+
+      case ContentType.Custom:
+        throw new Error(`Custom content must override the toString method.`);
+
+      case ContentType.FormUrlEncoded:
+        return "application/x-www-form-urlencoded";
+      case ContentType.HTML:
+        return "text/html";
+      case ContentType.JSON:
+        return "application/json";
+      case ContentType.PlainText:
+        return "text/plain";
+      case ContentType.RawData:
+        return "application/octet-stream";
+      case ContentType.XML:
+        return "application/xml";
+    }
+  }
 }
 
 class $FormUrlEncoded extends XContentType {
@@ -78,6 +101,10 @@ export class Custom extends XContentType {
   }
 
   toString() {
+    return this.headerValue;
+  }
+
+  get baseString() {
     return this.headerValue;
   }
 }

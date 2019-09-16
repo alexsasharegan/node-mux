@@ -1,28 +1,28 @@
-import * as ContentTypes from "../content-type/content-type";
+import * as Ct from "../content-type/content-type";
 import * as enc from "../x-encoding";
-import { ResponseWriter, ResponseWriterFunc } from "../contracts";
+import { ResponseWriter, Response } from "../contracts";
 import { writeFinal } from "./helpers";
 
 export type JSONReplacer = (this: any, key: string, value: any) => any;
 
 export abstract class BasePayload implements ResponseWriter, enc.Serializeable {
-  public abstract contentType: ContentTypes.XContentType;
+  public abstract contentType: Ct.XContentType;
   public abstract data: any;
 
-  writeResponse: ResponseWriterFunc = async (wx) => {
+  async writeResponse(wx: Response) {
     let chunk = this.serialize();
 
     wx.setHeader("Content-Type", this.contentType.toString());
     wx.setHeader("Content-Length", chunk.byteLength);
 
     await writeFinal(wx, chunk, "utf8");
-  };
+  }
 
   abstract serialize(): Buffer;
 }
 
 export class JSONPayload<T> extends BasePayload {
-  public contentType = ContentTypes.JSON;
+  public contentType = Ct.JSON;
   public replacer?: JSONReplacer;
 
   constructor(public data: T, options: { replacer?: JSONReplacer } = {}) {
@@ -38,7 +38,7 @@ export class JSONPayload<T> extends BasePayload {
 }
 
 export class FormUrlEncodedPayload extends BasePayload {
-  public contentType = ContentTypes.FormUrlEncoded;
+  public contentType = Ct.FormUrlEncoded;
 
   constructor(public data: enc.FormUrlEncodableData, public options?: enc.FormUrlEncodingOptions) {
     super();
@@ -50,7 +50,7 @@ export class FormUrlEncodedPayload extends BasePayload {
 }
 
 export class RawDataPayload extends BasePayload {
-  public contentType = ContentTypes.RawData;
+  public contentType = Ct.RawData;
 
   constructor(public data: Buffer) {
     super();
@@ -62,7 +62,7 @@ export class RawDataPayload extends BasePayload {
 }
 
 export class PlainTextPayload extends BasePayload {
-  public contentType = ContentTypes.PlainText;
+  public contentType = Ct.PlainText;
 
   constructor(public data: Buffer | string) {
     super();
@@ -78,11 +78,11 @@ export class PlainTextPayload extends BasePayload {
 }
 
 export class HTMLPayload extends PlainTextPayload {
-  public contentType = ContentTypes.HTML;
+  public contentType = Ct.HTML;
 }
 
 export class XMLPayload extends PlainTextPayload {
-  public contentType = ContentTypes.XML;
+  public contentType = Ct.XML;
 }
 
 export interface StreamedPayloadParams {
@@ -91,15 +91,15 @@ export interface StreamedPayloadParams {
 }
 
 export class StreamedPayload implements ResponseWriter {
-  contentType: ContentTypes.Custom;
+  contentType: Ct.Custom;
   data: NodeJS.ReadableStream;
 
   constructor({ contentType, data }: StreamedPayloadParams) {
-    this.contentType = new ContentTypes.Custom(contentType);
+    this.contentType = new Ct.Custom(contentType);
     this.data = data;
   }
 
-  writeResponse: ResponseWriterFunc = async (wx) => {
+  async writeResponse(wx: Response) {
     await new Promise((resolve, reject) => {
       wx.setHeader("Content-Type", this.contentType.toString());
 
@@ -111,5 +111,5 @@ export class StreamedPayload implements ResponseWriter {
         { end: true }
       );
     });
-  };
+  }
 }

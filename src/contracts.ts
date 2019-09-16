@@ -16,8 +16,13 @@ interface MuxRequest {
    * and error is thrown.
    */
   mustBody(): Record<string, any>;
-  query: URLSearchParams;
+  /**
+   * Once a BodyReader has read the request body,
+   * it must set this flag to true to ensure no other readers consume it.
+   */
+  bodyConsumed: boolean;
   parsedUrl: UrlWithStringQuery;
+  query: URLSearchParams;
 }
 
 export interface Response extends ServerResponse, MuxResponse {}

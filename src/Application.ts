@@ -65,6 +65,7 @@ export class Application implements Handler {
 
     // Request fields.
     rx.body = null;
+    rx.bodyConsumed = false;
     rx.mustBody = function mustBody() {
       if (rx.body == null) {
         throw new TypeError(`The request body is empty. It has not yet been parsed.`);
