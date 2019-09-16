@@ -110,3 +110,23 @@ export function sleep(d: DurationUnit): Promise<void> {
     setTimeout(resolve, d);
   });
 }
+
+export class CancelableTimer {
+  timerId: null | NodeJS.Timeout = null;
+
+  cancel = () => {};
+
+  constructor(public d: DurationUnit) {}
+
+  sleep(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.timerId = setTimeout(resolve, this.d) as any;
+      this.cancel = () => {
+        if (this.timerId) {
+          clearTimeout(this.timerId);
+        }
+        reject();
+      };
+    });
+  }
+}
