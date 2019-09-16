@@ -2,6 +2,10 @@ import { DurationUnit, sleep } from "../time";
 import { Adapter, Handler, Request, Response } from "../contracts";
 import { DefaultNotFoundHandler, DefaultRequestTimeoutHandler } from "../response";
 
+/**
+ * TimeoutHandler is an Adapter that will fail a route handler
+ * if it exceeds the timeout.
+ */
 export class TimeoutHandler implements Handler, Adapter {
   handler = DefaultNotFoundHandler;
 
@@ -14,8 +18,8 @@ export class TimeoutHandler implements Handler, Adapter {
 
   async serveHTTP(rx: Request, wx: Response) {
     await Promise.race([
-      await this.handler.serveHTTP(rx, wx),
-      await sleep(this.timeout).then(() => Promise.reject(DefaultRequestTimeoutHandler)),
+      this.handler.serveHTTP(rx, wx),
+      sleep(this.timeout).then(() => Promise.reject(DefaultRequestTimeoutHandler)),
     ]);
   }
 }
