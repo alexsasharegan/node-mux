@@ -3,8 +3,8 @@ import { Handler, HandleFunc, Request, Response } from "./contracts";
 export class HTTPHandler implements Handler {
   handleFunc: HandleFunc;
 
-  constructor(fn: HandleFunc) {
-    this.handleFunc = fn;
+  constructor(f: HandleFunc) {
+    this.handleFunc = f;
   }
 
   async serveHTTP(rx: Request, wx: Response) {

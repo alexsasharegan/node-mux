@@ -46,6 +46,10 @@ export interface Handler {
   serveHTTP(request: Request, response: Response): Promise<any>;
 }
 
+export function isHTTPHandler(x: any): x is Handler {
+  return x != null && typeof x.serveHTTP === "function";
+}
+
 export type ResponseWriterFunc = (response: Response) => Promise<void>;
 
 /**
@@ -84,20 +88,6 @@ export interface RequestContext {
   request: Request;
   response: Response;
 }
-
-// export interface ContextWithLogger {
-//   logger: Logger;
-// }
-
-// export interface ContextWithStore {
-//   store: Map<any, any>;
-// }
-
-// export interface ContextWithResponseHelpers {
-//   send(responder: Responder): Promise<void>;
-// }
-
-// export interface Context extends RequestContext, ContextWithLogger, ContextWithStore {}
 
 /**
  * Logger serves as an application abstraction that should allow for different
@@ -142,8 +132,4 @@ export interface Logger {
    * sensitive application data into logs.
    */
   debug(...values: any[]): void;
-}
-
-export function isHTTPHandler(x: any): x is Handler {
-  return x != null && typeof x.serveHTTP === "function";
 }
