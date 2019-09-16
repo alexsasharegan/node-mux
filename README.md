@@ -39,8 +39,8 @@ another handler in the chain.
 Since Handlers are objects, they can leverage their own state to process the request. In contrast, a
 HandleFunc is a stateless version of the Handler. It still conforms the `serverHTTP`
 signature--accepting a request and a response, and returning a Promise resolving upon
-completion--but does so without the need of an object. HandleFunc functions can easily be embedded
-into object to create a Handler.
+completion--but does so without the need of an object. A HandleFunc can easily be embedded into an
+object to create a Handler.
 
 #### Errors
 
