@@ -2,7 +2,7 @@ import { IncomingMessage, ServerResponse } from "http";
 import url from "url";
 import { Handler, isHTTPHandler, Request, Response, kDidInit, Adapter } from "./contracts";
 import { LogManager, LogLevel, StreamLogger, StructuredLog } from "./log";
-import { ServeMux } from "./mux";
+import { Router } from "./mux";
 import { endResponse } from "./response/helpers";
 import { DefaultInternalServerErrorHandler } from "./response";
 import { matchMethod } from "./request/methods";
@@ -13,7 +13,7 @@ export interface ApplicationOptions {
 
 export class Application implements Handler {
   logManager: LogManager;
-  mux = new ServeMux();
+  router = new Router("/");
 
   constructor({ logManager }: ApplicationOptions = {}) {
     if (!logManager) {
@@ -28,11 +28,11 @@ export class Application implements Handler {
   ) => {
     let [rx, wx] = this.contextualize(request, response);
 
-    await this.execHandler(rx, wx, this.mux);
+    await this.execHandler(rx, wx, this.router);
   };
 
-  public withAdapters(...adapters: Adapter[]): this {
-    this.mux.withAdapters(...adapters);
+  public useAdapters(...adapters: Adapter[]): this {
+    this.router.useAdapters(...adapters);
     return this;
   }
 
@@ -61,6 +61,7 @@ export class Application implements Handler {
 
     // Clean up resources.
     await endResponse(wx);
+    rx.unpipe();
   }
 
   protected contextualize(rx: any, wx: any): [Request, Response] {
