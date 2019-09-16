@@ -138,7 +138,7 @@ RequestLog.adapterOptions.withColors = true;
 let app = new Application({ logManager });
 
 // Set up adapters--like middleware--to decorate the app with extra behavior.
-app.withAdapters(
+app.useAdapters(
   RequestId,
   RequestLog,
   new JSONReader({
@@ -149,7 +149,7 @@ app.withAdapters(
 
 // Route handle functions always receive just a Request and Response.
 // This is the signature of a Handlers `serverHTTP` method.
-app.mux.register("/", async (rx, wx) => {
+app.router.get("/", async (rx, wx) => {
   // The reader (request) receives a Logger implementation.
   rx.logger.info(`Received a request on the '/' route.`);
 
