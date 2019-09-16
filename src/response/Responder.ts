@@ -1,6 +1,6 @@
 import { OutgoingHttpHeaders } from "http";
 import { Request, Response, ResponseWriter, Handler } from "../contracts";
-import { JSONReplacer, JSONPayload, PlainTextPayload } from "./Renderer";
+import { JSONReplacer, JSONPayload, PlainTextPayload } from "./ResponseWriter";
 import { StatusCode } from "./status";
 import { endResponse } from "./helpers";
 

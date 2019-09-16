@@ -1,4 +1,4 @@
 export * from "./helpers";
-export * from "./Renderer";
+export * from "./ResponseWriter";
 export * from "./Responder";
 export * from "./status";
