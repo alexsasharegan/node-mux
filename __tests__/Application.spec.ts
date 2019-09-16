@@ -10,12 +10,12 @@ describe("Application", () => {
     expect(isHTTPHandler(app)).toBe(true);
   });
 
-  it("should handle a request", async (done) => {
+  it("should handle a request", async () => {
     let app = new Application();
 
-    request(app.serveHTTP)
+    await request(app.serveHTTP)
       .get("/")
       .expect("Content-Type", /^application\/json/i)
-      .expect(StatusCode.NotFound, done);
+      .expect(StatusCode.NotFound);
   });
 });
