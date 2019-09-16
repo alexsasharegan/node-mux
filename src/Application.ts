@@ -1,6 +1,6 @@
 import { IncomingMessage, ServerResponse } from "http";
 import url from "url";
-import { Handler, isHTTPHandler, Request, Response, kDidInit } from "./contracts";
+import { Handler, isHTTPHandler, Request, Response, kDidInit, Adapter } from "./contracts";
 import { LogManager, LogLevel, StreamLogger, StructuredLog } from "./log";
 import { ServeMux } from "./mux";
 import { endResponse } from "./response/helpers";
@@ -21,11 +21,19 @@ export class Application implements Handler {
     this.logManager = logManager;
   }
 
-  serveHTTP = async (request: Request | IncomingMessage, response: Response | ServerResponse) => {
+  public serveHTTP = async (
+    request: Request | IncomingMessage,
+    response: Response | ServerResponse
+  ) => {
     let [rx, wx] = this.contextualize(request, response);
 
     await this.execHandler(rx, wx, this.mux);
   };
+
+  public withAdapters(...adapters: Adapter[]): this {
+    this.mux.withAdapters(...adapters);
+    return this;
+  }
 
   protected async execHandler(rx: Request, wx: Response, h: Handler): Promise<void> {
     try {
