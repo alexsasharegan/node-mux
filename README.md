@@ -1,8 +1,8 @@
 # node-mux
 
-`node-mux` is a server framework designed around a route multiplexer. It aims to provide a high
-degree of type safety to building servers while also maintaining an ergonomic API. It is built for
-modern Node.js environments, which means Promises are central to the design.
+`node-mux` is a zero dependency server framework designed around a route multiplexer. It aims to
+provide a high degree of type safety to building servers while also maintaining an ergonomic API. It
+is built for modern Node.js environments, which means Promises are central to the design.
 
 ## Design
 
@@ -126,12 +126,11 @@ let logStream = fs.createWriteStream("/var/log/node/test.log", {
 // but each logger still has a level that controls its output.
 let logManager = new LogManager(
   LogLevel.All,
-  // Log to the file stream without colors.
-  new StreamLogger(LogLevel.All, { withColor: false, stream: logStream }),
-  // Log to stderr stream in color.
-  new StreamLogger(LogLevel.All, { withColor: true, stream: process.stderr })
+  // Log to the file stream.
+  new StreamLogger(LogLevel.All, { stream: logStream }),
+  // Log to stderr.
+  new StreamLogger(LogLevel.All, { stream: process.stderr })
 );
-RequestLog.adapterOptions.withColors = true;
 
 // Application is the top level Handler.
 // All Handlers implement the `serverHTTP` method.

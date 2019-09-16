@@ -1,21 +1,8 @@
 import util from "util";
-import chalk from "chalk";
 import { Logger } from "../contracts";
-import { LogLabel, levelSatisfies, LogLevel } from "./shared";
-
-export const enum NewLine {
-  /**
-   * Linux/Mac style new line.
-   */
-  LF = "\n",
-  /**
-   * Windows style new line.
-   */
-  CRLF = "\r\n",
-}
+import { LogLabel, levelSatisfies, LogLevel, NewLine } from "./shared";
 
 export interface ConsoleLoggerOptions {
-  withColor?: boolean;
   stream?: NodeJS.WritableStream;
   newLine?: NewLine;
 }
@@ -29,36 +16,16 @@ export interface ConsoleLoggerOptions {
 export class StreamLogger implements Logger {
   isRoot = true;
   newLine: NewLine;
-  withColor: boolean;
   wx: NodeJS.WritableStream;
-  colorizers = {
-    [LogLabel.Fatal]: chalk.red,
-    [LogLabel.Error]: chalk.red,
-    [LogLabel.Warn]: chalk.yellow,
-    [LogLabel.Info]: chalk.cyan,
-    [LogLabel.Debug]: chalk.white,
-  };
-  bgColorizers = {
-    [LogLabel.Fatal]: chalk.bgRed,
-    [LogLabel.Error]: chalk.bgRed,
-    [LogLabel.Warn]: chalk.bgYellow,
-    [LogLabel.Info]: chalk.bgCyan,
-    [LogLabel.Debug]: chalk.bgWhite,
-  };
 
   constructor(protected level: number, options: ConsoleLoggerOptions = {}) {
-    let { withColor = false, stream = process.stderr, newLine = NewLine.LF } = options;
-    this.withColor = withColor;
+    let { stream = process.stderr, newLine = NewLine.LF } = options;
     this.wx = stream;
     this.newLine = newLine;
   }
 
   protected write(label: LogLabel, ...values: any[]) {
-    if (this.withColor) {
-      this.wx.write(this.colorizers[label](util.format(this.prefix(label), ...values)));
-    } else {
-      this.wx.write(util.format(this.prefix(label), ...values));
-    }
+    this.wx.write(util.format(this.prefix(label), ...values));
     this.wx.write(this.newLine);
   }
 
@@ -73,22 +40,27 @@ export class StreamLogger implements Logger {
     let mm = padZero(d.getMinutes());
     let ss = padZero(d.getSeconds());
 
-    let labelFmt = `${label.toUpperCase()}`;
-    if (this.withColor) {
-      labelFmt = chalk.bold(labelFmt);
-      let colorizer = this.bgColorizers[label];
-      switch (label) {
-        case LogLabel.Debug:
-        case LogLabel.Info:
-          labelFmt = colorizer(chalk.black(labelFmt));
-          break;
-        default:
-          labelFmt = colorizer(chalk.whiteBright(labelFmt));
-          break;
-      }
+    // log label
+    let ll = "";
+    switch (label) {
+      case LogLabel.Debug:
+        ll = "DEBUG ";
+        break;
+      case LogLabel.Error:
+        ll = "ERROR ";
+        break;
+      case LogLabel.Fatal:
+        ll = "FATAL ";
+        break;
+      case LogLabel.Info:
+        ll = "INFO ";
+        break;
+      case LogLabel.Warn:
+        ll = "WARN ";
+        break;
     }
 
-    return `${labelFmt} [${YYYY}/${MM}/${DD} ${hh}:${mm}:${ss}]`;
+    return `${ll}[${YYYY}/${MM}/${DD} ${hh}:${mm}:${ss}]`;
   }
 
   fatal = (...values: any[]) => {

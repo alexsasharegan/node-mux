@@ -37,9 +37,19 @@ export enum LogLevel {
 
   /**
    * Convenient shortcut to enable all log levels.
-   * Should be used in DEVELOPMENT ONLY.
    */
   All = LogLevel.Fatal | LogLevel.Error | LogLevel.Warn | LogLevel.Info | LogLevel.Debug,
+}
+
+export enum NewLine {
+  /**
+   * Linux/Mac style new line.
+   */
+  LF = "\n",
+  /**
+   * Windows style new line.
+   */
+  CRLF = "\r\n",
 }
 
 export const enum LogLabel {

@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { performance } from "perf_hooks";
 import { IncomingMessage, ServerResponse } from "http";
 import * as bytes from "../bytes";
@@ -6,17 +5,7 @@ import { RequestId } from "./RequestId";
 import * as time from "../time";
 import { Handler, Request, Response } from "../contracts";
 import { HTTPHandler } from "../Handler";
-
-enum NewLine {
-  /**
-   * Linux/Mac style new line.
-   */
-  LF = "\n",
-  /**
-   * Windows style new line.
-   */
-  CRLF = "\r\n",
-}
+import { NewLine } from "../log";
 
 export interface RequestLogOptions {
   withColors?: boolean;
@@ -36,14 +25,12 @@ export class RequestLog {
   protected ipAddr = "";
   protected contentLength = "0";
   protected response: ServerResponse;
-  protected withColors: boolean;
   protected newLine: NewLine;
   protected streams: NodeJS.WritableStream[] = [];
 
   constructor(rx: Request, wx: Response, options: RequestLogOptions = {}) {
-    let { withColors = false, streams = [process.stderr], newLine = NewLine.LF } = options;
+    let { streams = [process.stderr], newLine = NewLine.LF } = options;
 
-    this.withColors = withColors;
     this.streams.push(...streams);
     this.newLine = newLine;
 
@@ -94,17 +81,6 @@ export class RequestLog {
     let dt = this.fmtDate(this.incomingDate);
     let reqId = `[${this.requestId == null ? "" : this.requestId.toString()}]`;
     let quote = `"`;
-
-    if (this.withColors) {
-      reqId = chalk.yellow(reqId);
-      method = chalk.bold(chalk.magenta(method));
-      quote = chalk.cyan(quote);
-      uri = chalk.cyan(uri);
-      httpVersion = chalk.cyan(httpVersion);
-      statusCode = chalk.bold(chalk.green(statusCode));
-      size = chalk.bold(chalk.blue(size));
-      elapsed = chalk.green(elapsed);
-    }
 
     return `${dt} ${reqId} ${quote}${method} ${uri} ${httpVersion}${quote} from ${ipAddr} - ${statusCode} ${size} in ${elapsed}`;
   }
@@ -168,7 +144,8 @@ export class RequestLog {
 
   public static adapterOptions: RequestLogOptions = {};
 
-  public static NewLine = NewLine;
+  public static CRLF = NewLine.CRLF;
+  public static LF = NewLine.LF;
 }
 
 /**
