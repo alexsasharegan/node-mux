@@ -7,14 +7,14 @@ modern Node.js environments, which means Promises are central to the design.
 ## Design
 
 `node-mux` is designed around interfaces. The core interface is taken from Go's standard library:
-the `Handler` interface. A Handler is just any value with a method `serverHTTP` on it conforming to
-the `HandleFunc` signature. In TypeScript, it looks like this:
+the `Handler` interface. A Handler is any value with a method `serverHTTP` that conforms to the
+`HandleFunc` signature. In TypeScript, it looks like this:
 
 ```ts
 export type HandleFunc = (request: Request, response: Response) => Promise<any>;
 
 export interface Handler {
-  serveHTTP(request: Request, response: Response): Promise<any>;
+  serveHTTP: HandleFunc;
 }
 ```
 
@@ -28,6 +28,74 @@ In `node-mux`, the `Application` implements the `RequestListener` interface, the
 request type `IncomingMessage` to its own type `Request`, and likewise with `ServerResponse` to
 `Response`. These types provide additional ergonomics, but do not hide any low-level control from
 you.
+
+### Handler & HandleFunc
+
+A Handler is an object with a `serveHTTP` method that accepts a request and a response, and returns
+a Promise that resolves once the Handler has finished serving the request. A Handler is fully
+responsible for the request, unlike a connect-style function that may pass the request along to
+another handler in the chain.
+
+Since Handlers are objects, they can leverage their own state to process the request. In contrast, a
+HandleFunc is a stateless version of the Handler. It still conforms the `serverHTTP`
+signature--accepting a request and a response, and returning a Promise resolving upon
+completion--but does so without the need of an object. HandleFunc functions can easily be embedded
+into an objects `serveHTTP` property to create a Handler.
+
+#### Errors
+
+One of the benefits of this interface is that Handlers processing a request may throw values that
+also implement the Handler interface. When an error Handler is thrown, the root Handler will catch
+this value and pass it execution of the request/response. As an example, if a Handler throws a
+Handler error during its execution, the root Handler won't serve its generic 500 error response, but
+will write the error's custom 404 response.
+
+### Adapters
+
+Many Node.js server frameworks leverage a middleware pattern to decorate routes with reusable
+behaviors. The pattern considers a middleware function as a single link in a chain before the
+request reaches the route's handler. That middleware function may add something to the
+request/response, or it may respond early to fail a request, ending the chain.
+
+Adapters also decorate routes with reusable behavior, but don't use the same chained continuation
+pattern. An Adapter is any object with an `adapt` method on it that accepts a Handler and returns a
+Handler.
+
+```ts
+export type AdapterFunc = (h: Handler) => Handler;
+
+export interface Adapter {
+  adapt: AdapterFunc;
+}
+```
+
+This is a little meta at first, but in the same way higher order functions work. Here's a more
+concrete example:
+
+```ts
+const logsBeforeAfterResponse: AdapterFunc = (handler) => {
+  return {
+    async serveHTTP(request, response) {
+      request.logger.debug("before");
+
+      await handler.serverHTTP(request, response);
+
+      request.logger.debug("after");
+    },
+  };
+};
+
+const beforeAfterAdapter = {
+  adapt: logsBeforeAfterResponse,
+};
+```
+
+`beforeAfterAdapter` is an Adapter that will decorate Handlers with log messages before and after
+the request has been served. The adapter implements the `adapt` method of the interface, and the
+function correctly follows the signature of accepting a Handler and returning a Handler. Since it
+closes over the original Handler, it has full control over the serving the request, and can choose
+to call the original Handler or not. If it calls the original Handler, it now has access to before
+and after the request is served--something not possible with the connect middleware pattern.
 
 ## Example
 

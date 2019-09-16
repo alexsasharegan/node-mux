@@ -37,6 +37,9 @@ export class Router {
     return this;
   }
 
+  /**
+   * Starts a route builder context with a set of given adapters (middleware).
+   */
   public withAdapters(...adapters: Adapter[]): RouteBuilderContext<this> {
     return new RouteBuilder(this, adapters);
   }

@@ -40,21 +40,21 @@ export class RequestLog {
   protected newLine: NewLine;
   protected streams: NodeJS.WritableStream[] = [];
 
-  constructor(request: Request, response: Response, options: RequestLogOptions = {}) {
+  constructor(rx: Request, wx: Response, options: RequestLogOptions = {}) {
     let { withColors = false, streams = [process.stderr], newLine = NewLine.LF } = options;
 
     this.withColors = withColors;
     this.streams.push(...streams);
     this.newLine = newLine;
 
-    response.on("finish", this.onFinish);
+    wx.on("finish", this.onFinish);
 
-    this.response = response;
-    this.uri = request.url || "";
-    this.method = request.method || "";
-    this.httpVersion += request.httpVersion;
-    this.setIpAddr(request);
-    this.requestId = RequestId.extract(request);
+    this.response = wx;
+    this.uri = rx.url || "";
+    this.method = rx.method || "";
+    this.httpVersion += rx.httpVersion;
+    this.setIpAddr(rx);
+    this.requestId = RequestId.extract(rx);
   }
 
   /**
@@ -129,12 +129,12 @@ export class RequestLog {
     return `${YYYY}/${MM}/${DD} ${hh}:${mm}:${ss}`;
   }
 
-  protected setIpAddr(request: IncomingMessage): this {
+  protected setIpAddr(rx: IncomingMessage): this {
     // Simplest access from the actual socket.
-    let ip = request.connection.remoteAddress;
+    let ip = rx.connection.remoteAddress;
     // Possible headers for when behind a proxy.
-    let xff = request.headers["x-forwarded-for"];
-    let realIp = request.headers["x-real-ip"];
+    let xff = rx.headers["x-forwarded-for"];
+    let realIp = rx.headers["x-real-ip"];
 
     if (Array.isArray(xff)) {
       ip = xff[xff.length - 1];

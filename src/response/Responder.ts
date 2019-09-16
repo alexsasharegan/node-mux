@@ -1,5 +1,5 @@
 import { OutgoingHttpHeaders } from "http";
-import { Request, Response, ResponseWriter, Handler, HandleFunc } from "../contracts";
+import { Request, Response, ResponseWriter, Handler } from "../contracts";
 import { JSONReplacer, JSONPayload, PlainTextPayload } from "./Renderer";
 import { StatusCode } from "./status";
 import { endResponse } from "./helpers";
@@ -24,22 +24,22 @@ export class HTTPResponse implements Handler {
     this.headers = headers;
   }
 
-  serveHTTP: HandleFunc = async (_request, response) => {
-    response.statusCode = this.status;
+  async serveHTTP(_: Request, wx: Response) {
+    wx.statusCode = this.status;
 
     for (let [name, value] of Object.entries(this.headers)) {
       if (value === undefined) {
         continue;
       }
-      response.setHeader(name, value);
+      wx.setHeader(name, value);
     }
 
-    await this.payload.writeResponse(response);
+    await this.payload.writeResponse(wx);
 
-    if (!response.finished) {
-      response.end();
+    if (!wx.finished) {
+      await endResponse(wx);
     }
-  };
+  }
 }
 
 export interface JSONResponseParams<T> extends BaseResponseParams {
