@@ -15,12 +15,13 @@ export interface HTTPErrorParams<E> extends WrappedErrorParams<E> {
  * It renders the `message` passed as content-type text/plain.
  */
 export class HTTPError<E = any> extends WrappedError<E> {
-  code!: number;
+  code: number;
   headers?: OutgoingHttpHeaders;
 
   constructor({ code, message, previous, headers }: HTTPErrorParams<E>) {
     super(message, { code, previous });
     this.headers = headers;
+    this.code = code;
   }
 
   async serveHTTP(rx: Request, wx: Response) {
